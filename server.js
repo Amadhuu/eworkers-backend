@@ -32,38 +32,35 @@ app.get('/api/logs', async (req, res) => {
   }
 });
 
-// accept logs from tracker
-app.post('/api/logs', async (req, res) => {
+// Handle progress send from Floater
+app.post('/api/progress/send', async (req, res) => {
   try {
-    const {
-      group,
-      account_owner,
-      account_worker,
-      account_type,
-      work_date,
-      minutes_worked,
-      earnings_naira
-    } = req.body;
+    const { group, owner, worker, cycle, date, minutes, hours } = req.body;
 
-    // validate
-    if (!account_worker || !work_date) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!worker || !date) {
+      return res.status(400).json({ message: 'Missing worker or date' });
     }
 
-    // Insert (maps client names to DB columns)
+    // Normalize and calculate earnings
+    const mins = Math.round(minutes || 0);
+    const earnings = Math.round((minutes / 60) * 2000); // adjust your rate if needed
+
+    // Insert into database (map Floater fields to DB columns)
     await pool.query(
       `INSERT INTO logs
       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [group || 'ADS', account_owner || '', account_worker || '', account_type || '', date_worked, minutes_worked || 0, earnings_naira || 0]
+      [group || 'ADS', owner || '', worker || '', cycle || '', date, mins, earnings]
     );
 
-    res.json({ message: 'Log saved ✅' });
+    console.log('✅ Floater progress stored:', { worker, date, minutes, earnings });
+    res.json({ message: 'Progress saved ✅', stored: { worker, date, minutes, earnings } });
   } catch (err) {
-    console.error('❌ Error saving log:', err);
-    res.status(500).json({ message: 'Error saving log' });
+    console.error('❌ Error saving Floater progress:', err);
+    res.status(500).json({ message: 'Error saving Floater progress', details: err.message });
   }
 });
+
 // === Floater Compatibility Routes ==
 
 // Handle progress send from Floater
