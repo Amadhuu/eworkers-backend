@@ -75,14 +75,14 @@ app.post('/api/progress/send', async (req, res) => {
       return res.status(400).json({ message: 'Missing worker or date' });
     }
 
-    const earnings = Math.round((minutes / 60) * 2000);
+const mins = Math.round(minutes_worked);
+await pool.query(
+  `INSERT INTO logs
+  (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
+  VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+  [group || 'ADS', account_owner || '', account_worker || '', account_type || '', date_worked, mins || 0, earnings_naira || 0]
+);
 
-    await pool.query(
-      `INSERT INTO logs 
-       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [group || 'ADS', owner || '', worker || '', cycle || '', date, minutes || 0, earnings]
-    );
 
     console.log('📥 Floater progress stored:', { worker, date, minutes, earnings });
     res.json({ message: 'Progress received ✅', stored: { worker, date, minutes, earnings } });
