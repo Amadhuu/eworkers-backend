@@ -64,6 +64,45 @@ app.post('/api/logs', async (req, res) => {
     res.status(500).json({ message: 'Error saving log' });
   }
 });
+// === Floater Compatibility Routes ==
+
+// Handle progress send from Floater
+app.post('/api/progress/send', async (req, res) => {
+  try {
+    const { group, owner, worker, cycle, date, minutes, hours } = req.body;
+
+    if (!worker || !date) {
+      return res.status(400).json({ message: 'Missing worker or date' });
+    }
+
+    const earnings = Math.round((minutes / 60) * 2000);
+
+    await pool.query(
+      `INSERT INTO logs 
+       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [group || 'ADS', owner || '', worker || '', cycle || '', date, minutes || 0, earnings]
+    );
+
+    console.log('📥 Floater progress stored:', { worker, date, minutes, earnings });
+    res.json({ message: 'Progress received ✅', stored: { worker, date, minutes, earnings } });
+  } catch (err) {
+    console.error('❌ Error saving Floater progress:', err);
+    res.status(500).json({ message: 'Error saving Floater progress' });
+  }
+});
+
+// Handle auto-archive trigger from Floater
+app.post('/api/archive/run', async (req, res) => {
+  try {
+    const { group, owner, worker, cycle, date, minutes } = req.body;
+    console.log('🗄️ Archive triggered from Floater:', { worker, date, minutes });
+    res.json({ message: 'Archive logged ✅', data: req.body });
+  } catch (err) {
+    console.error('❌ Archive endpoint error:', err);
+    res.status(500).json({ message: 'Error processing archive' });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
