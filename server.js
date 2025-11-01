@@ -88,33 +88,34 @@ await pool.query(
   }
 });
 
-// Handle auto-archive trigger from Floater
-// Handle auto-archive trigger from Floater
+// === Floater Auto-Archive Test Route ===
 app.post('/api/archive/run', async (req, res) => {
   try {
-    const { group, owner, worker, cycle, date, minutes, hours } = req.body;
+    const { group, owner, worker, cycle, date, minutes } = req.body;
 
-    if (!worker || !date) {
-      return res.status(400).json({ message: 'Missing worker or date' });
-    }
+    console.log('🗄️ Archive triggered from Floater:', { worker, owner, date, minutes, cycle, group });
 
-    // Calculate totals
-    const mins = Math.round(minutes || 0);
-    const earnings = Math.round((minutes / 60) * 2000); // or your current hourly rate
-
-    // Insert archive record (marking it distinctly)
+    // simple insert just for test
     await pool.query(
       `INSERT INTO logs
-      (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [group || 'ADS', owner || '', worker || '', cycle || 'ARCHIVE', date, mins, earnings]
+       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        group || 'ADS',
+        owner || '',
+        worker || '',
+        'ARCHIVE', // fixed tag to mark it in DB clearly
+        date || new Date().toISOString().split('T')[0],
+        Math.round(minutes || 0),
+        ((minutes || 0) / 60) * 2000, // simple Naira calc for test
+      ]
     );
 
-    console.log('🗄️ Archive entry stored:', { worker, date, minutes, earnings });
-    res.json({ message: 'Archive stored ✅', stored: { worker, date, minutes, earnings } });
+    console.log('✅ Archive record saved for', worker, date);
+    res.json({ message: 'Archive saved ✅', saved: { worker, date, minutes } });
   } catch (err) {
-    console.error('❌ Archive endpoint error:', err);
-    res.status(500).json({ message: 'Error processing archive', details: err.message });
+    console.error('❌ Archive save error:', err);
+    res.status(500).json({ message: 'Error saving archive' });
   }
 });
 
