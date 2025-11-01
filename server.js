@@ -80,7 +80,6 @@ await pool.query(
   [group || 'ADS', account_owner || '', account_worker || '', account_type || '', date_worked, mins || 0, earnings_naira || 0]
 );
 
-
     console.log('📥 Floater progress stored:', { worker, date, minutes, earnings });
     res.json({ message: 'Progress received ✅', stored: { worker, date, minutes, earnings } });
   } catch (err) {
@@ -90,14 +89,32 @@ await pool.query(
 });
 
 // Handle auto-archive trigger from Floater
+// Handle auto-archive trigger from Floater
 app.post('/api/archive/run', async (req, res) => {
   try {
-    const { group, owner, worker, cycle, date, minutes } = req.body;
-    console.log('🗄️ Archive triggered from Floater:', { worker, date, minutes });
-    res.json({ message: 'Archive logged ✅', data: req.body });
+    const { group, owner, worker, cycle, date, minutes, hours } = req.body;
+
+    if (!worker || !date) {
+      return res.status(400).json({ message: 'Missing worker or date' });
+    }
+
+    // Calculate totals
+    const mins = Math.round(minutes || 0);
+    const earnings = Math.round((minutes / 60) * 2000); // or your current hourly rate
+
+    // Insert archive record (marking it distinctly)
+    await pool.query(
+      `INSERT INTO logs
+      (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [group || 'ADS', owner || '', worker || '', cycle || 'ARCHIVE', date, mins, earnings]
+    );
+
+    console.log('🗄️ Archive entry stored:', { worker, date, minutes, earnings });
+    res.json({ message: 'Archive stored ✅', stored: { worker, date, minutes, earnings } });
   } catch (err) {
     console.error('❌ Archive endpoint error:', err);
-    res.status(500).json({ message: 'Error processing archive' });
+    res.status(500).json({ message: 'Error processing archive', details: err.message });
   }
 });
 
