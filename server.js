@@ -132,7 +132,13 @@ cron.schedule(
         }
       } 
 
-      console.log("✅ Daily auto-archive completed successfully"); 
+      console.log("✅ Daily auto-archive completed successfully");
+      updateCronHealth(today, workers.rows.length, true);
+
+      // Count inserted entries for status tracking
+      const insertedCount = workers.rows.length; // approximate
+      updateCronHealth(today, insertedCount, true);
+
             // Update ping memory
       lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
       console.log("📡 Ping status updated for Floater:", lastArchivePing);
@@ -147,9 +153,11 @@ cron.schedule(
           date: today,
         });
         console.log("📡 Ping-back sent to Floater:", pingResponse.data);
+        updateCronHealth(today, workers.rows.length, true);
         resetPingStatus();
       } catch (pingErr) {
         console.warn("⚠️ Could not reach Floater for ping-back:", pingErr.message);
+        updateCronHealth(today, 0, false, pingErr.message);
       }
     } catch (err) {
       console.error("❌ CRON auto-archive error:", err);
@@ -181,4 +189,36 @@ app.get("/api/ping/archive-status", (req, res) => {
 // 🟩 START SERVER
 // ================================================================
 const PORT = process.env.PORT || 5000;
+
+// ================================================================
+// 🟩 CRON HEALTH STATUS ENDPOINT — Phase 2D Diagnostic
+// ================================================================
+let lastCronRun = {
+  date: null,
+  inserted: 0,
+  pingSuccess: false,
+  lastPingError: null,
+};
+
+// Small helper to update cron run info
+function updateCronHealth(date, insertedCount, pingStatus, errorMsg = null) {
+  lastCronRun = {
+    date,
+    inserted: insertedCount,
+    pingSuccess: pingStatus,
+    lastPingError: errorMsg,
+  };
+  console.log("📊 Updated CRON health:", lastCronRun);
+}
+
+// Add GET endpoint for diagnostics
+app.get("/api/cron/status", (req, res) => {
+  res.json({
+    lastRun: lastCronRun.date || "No CRON run recorded yet",
+    zeroMinuteInserts: lastCronRun.inserted,
+    pingSuccess: lastCronRun.pingSuccess,
+    pingError: lastCronRun.lastPingError,
+  });
+});
+
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
