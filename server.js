@@ -129,12 +129,16 @@ cron.schedule(
           );
           console.log(`🗄️ Auto-archived zero entry for ${account_worker}`);
         }
-      }
+      } 
 
-      console.log("✅ Daily auto-archive completed successfully");
+      console.log("✅ Daily auto-archive completed successfully"); 
+            // Update ping memory
+      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
+      console.log("📡 Ping status updated for Floater:", lastArchivePing);
+
 
       // 🟩 STEP 2: PING BACK TO FLOATER CLIENTS
-      const floaterEndpoint = "http://localhost:3000/api/ping/archive"; // change this to your Floater listener endpoint
+      const floaterEndpoint = "http://127.0.0.1:3000/api/ping/archive"; // Floater local listener (Electron)
 
       try {
         const pingResponse = await axios.post(floaterEndpoint, {
@@ -142,6 +146,7 @@ cron.schedule(
           date: today,
         });
         console.log("📡 Ping-back sent to Floater:", pingResponse.data);
+        resetPingStatus();
       } catch (pingErr) {
         console.warn("⚠️ Could not reach Floater for ping-back:", pingErr.message);
       }
@@ -153,6 +158,23 @@ cron.schedule(
     timezone: "Africa/Lagos",
   }
 );
+
+// ================================================================
+// 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
+// ================================================================
+let lastArchivePing = { status: "IDLE", date: null }; 
+
+function resetPingStatus(delayMs = 5 * 60 * 1000) { // reset after 5 min
+  setTimeout(() => {
+    lastArchivePing = { status: "IDLE", date: null };
+    console.log("🔁 Ping status reset to IDLE");
+  }, delayMs);
+}
+
+// Whenever CRON finishes, update this variable (we’ll patch below)
+app.get("/api/ping/archive-status", (req, res) => {
+  res.json(lastArchivePing);
+}); 
 
 // ================================================================
 // 🟩 START SERVER
