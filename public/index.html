@@ -684,11 +684,16 @@ function getMostRecentArchivedDate(arr){
   return dates.length ? dates.at(-1) : null;
 }
 
+const BACKEND_URL =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "https://eworkers-backend.onrender.com"
+    : "https://eworkers-backend.onrender.com";
+    
 /* ---------- load data + init UI ---------- */
 async function loadData(){
   loadState();
   try {
-    const res = await fetch('/api/logs');
+    const res = await fetch(`${BACKEND_URL}/api/logs`);
     if(!res.ok) throw new Error('Failed to fetch logs');
     allLogs = await res.json();
   // 🧭 Smart Day Auto-Selection — only pick the latest date with valid logs in current group
