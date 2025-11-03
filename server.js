@@ -34,29 +34,31 @@ app.get("/api/logs", async (req, res) => {
   }
 });
 
-
 // ================================================================
-// 🟩 PROGRESS SEND (Manual from Floater)
+// 🟩 PROGRESS SEND (Manual from Floater) — Duplicate-Proof
 // ================================================================
 app.post("/api/progress/send", async (req, res) => {
   try {
     const { group, owner, worker, cycle, date, minutes = 0, hours = 0 } = req.body;
-
-    if (!worker || !date) {
-      return res.status(400).json({ message: "Missing worker or date" });
-    }
+    if (!worker || !date) return res.status(400).json({ message: "Missing worker or date" });
 
     const mins = Math.round(minutes);
     const earnings = Math.round((minutes / 60) * 2000);
 
-    await pool.query(
-      `INSERT INTO logs
-       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [group || "ADS", owner || "", worker || "", cycle || "us", date, mins, earnings]
-    );
+    await pool.query(`
+      INSERT INTO logs (
+        group_name, account_owner, account_worker, account_type,
+        date_worked, minutes_worked, earnings_naira
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT ON CONSTRAINT logs_unique_record
+      DO UPDATE SET
+        minutes_worked = EXCLUDED.minutes_worked,
+        earnings_naira = EXCLUDED.earnings_naira,
+        account_type   = EXCLUDED.account_type;
+    `, [group || "ADS", owner || "", worker || "", cycle || "us", date, mins, earnings]);
 
-    console.log("✅ Progress stored:", { worker, date, minutes, earnings });
+    console.log("✅ Progress stored (or updated):", { worker, date, minutes, earnings });
     res.json({ message: "Progress saved ✅", stored: { worker, date, minutes, earnings } });
   } catch (err) {
     console.error("❌ Error saving Floater progress:", err);
@@ -66,24 +68,40 @@ app.post("/api/progress/send", async (req, res) => {
 
 
 // ================================================================
-// 🟩 MANUAL ARCHIVE TRIGGER (from Floater payload)
+// 🟩 MANUAL ARCHIVE TRIGGER (from Floater payload) — Duplicate-Proof
 // ================================================================
 app.post("/api/archive/run", async (req, res) => {
   try {
     const { group, owner, worker, cycle, date, minutes = 0 } = req.body;
+    if (!worker || !date) return res.status(400).json({ message: "Missing worker or date" });
 
     console.log("🗄️ Archive trigger received:", { worker, owner, date, minutes, cycle, group });
 
     const earnings = Math.round((minutes / 60) * 2000);
 
-    await pool.query(
-      `INSERT INTO logs
-       (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [group || "ADS", owner || "", worker || "", "ARCHIVE", date, minutes, earnings]
-    );
+    await pool.query(`
+      INSERT INTO logs (
+        group_name, account_owner, account_worker, account_type,
+        date_worked, minutes_worked, earnings_naira
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT ON CONSTRAINT logs_unique_record
+      DO UPDATE SET
+        minutes_worked = EXCLUDED.minutes_worked,
+        earnings_naira = EXCLUDED.earnings_naira,
+        account_type   = EXCLUDED.account_type;
+    `, [group || "ADS", owner || "", worker || "", "ARCHIVE", date, minutes, earnings]);
 
-    console.log(`✅ Archive saved for ${worker || "N/A"} (${date})`);
+        // ✅ Register or update this worker in the active registry
+    await pool.query(`
+      INSERT INTO active_registry (group_name, account_owner, account_worker, last_active)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (group_name, account_owner, account_worker)
+      DO UPDATE SET last_active = NOW();
+    `, [group || "ADS", owner || "", worker || ""]);
+
+
+    console.log(`✅ Archive saved or updated for ${worker || "N/A"} (${date})`);
     res.json({ message: "Archive completed ✅", saved: { worker, date, minutes } });
   } catch (err) {
     console.error("❌ Archive error:", err);
@@ -91,82 +109,92 @@ app.post("/api/archive/run", async (req, res) => {
   }
 });
 
+// ================================================================  
+// 🟩 CRON JOB — SERVER AUTO-ARCHIVE (07:55 AM WAT Daily) + PING-BACK  
+// ================================================================  
+const axios = require("axios"); // <== Add near top if not already imported  
 
-// ================================================================
-// 🟩 CRON JOB — SERVER AUTO-ARCHIVE (07:55 AM WAT Daily) + PING-BACK
-// ================================================================
-const axios = require("axios"); // <== Add near top if not already imported
+// ================================================================  
+// 🧠 SMART CRON JOB — Auto-Archive Only Active Floater Workers (Diagnostic Enhanced)  
+// ================================================================  
+cron.schedule(  
+  "55 7 * * *",  
+  async () => {  
+    const today = new Date().toISOString().split("T")[0];  
+    console.log("🧭 SMART CRON started → checking active_registry for active workers...");  
+    console.log("🕗 SMART CRON: Starting daily auto-archive at 07:55 AM WAT →", today);  
 
-cron.schedule(
-  "55 7 * * *",
-  async () => {
-    const today = new Date().toISOString().split("T")[0];
-    console.log("🕗 CRON: Starting daily auto-archive at 07:55 AM WAT →", today);
+    try {  
+      // STEP 1: Pull only active Floater users (worked within last 7 days)  
+      const activeWorkers = await pool.query(`  
+        SELECT group_name, account_owner, account_worker  
+        FROM active_registry  
+        WHERE last_active >= NOW() - INTERVAL '7 days'  
+      `);  
 
-    try {
-      // Get all unique workers
-      const workers = await pool.query(`
-        SELECT DISTINCT account_worker, account_owner, group_name, account_type
-        FROM logs
-        WHERE account_worker IS NOT NULL AND account_worker <> ''
-      `);
+      console.log(`🧮 SMART CRON found ${activeWorkers.rowCount} active workers to process.`);  
 
-      for (const row of workers.rows) {
-        const { account_worker, account_owner, group_name, account_type } = row;
+      if (activeWorkers.rowCount === 0) {  
+        console.log("⚠️ SMART CRON: No active workers found — nothing to archive today.");  
+        updateCronHealth(today, 0, true);  
+        return;  
+      }  
 
-        // Check if worker already has today's log
-        const existing = await pool.query(
-          `SELECT 1 FROM logs WHERE account_worker=$1 AND date_worked=$2`,
-          [account_worker, today]
-        );
+      let inserted = 0, skipped = 0;  
 
-        if (existing.rowCount === 0) {
-          // Insert 0-minute archive
-          await pool.query(
-            `INSERT INTO logs
-             (group_name, account_owner, account_worker, account_type, date_worked, minutes_worked, earnings_naira)
-             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-            [group_name, account_owner, account_worker, account_type, today, 0, 0]
-          );
-          console.log(`🗄️ Auto-archived zero entry for ${account_worker}`);
-        }
-      } 
+      // STEP 2: Loop through each active worker and archive safely  
+      for (const { group_name, account_owner, account_worker } of activeWorkers.rows) {  
+        const exists = await pool.query(  
+          `SELECT 1 FROM logs  
+           WHERE account_worker=$1 AND account_owner=$2  
+             AND group_name=$3 AND date_worked=$4`,  
+          [account_worker, account_owner, group_name, today]  
+        );  
 
-      console.log("✅ Daily auto-archive completed successfully");
-      updateCronHealth(today, workers.rows.length, true);
+        if (exists.rowCount > 0) {  
+          skipped++;  
+          console.log(`⏩ SMART CRON skipped ${account_worker} (${group_name}) — already logged today.`);  
+          continue;  
+        }  
 
-      // Count inserted entries for status tracking
-      const insertedCount = workers.rows.length; // approximate
-      updateCronHealth(today, insertedCount, true);
+        await pool.query(`  
+          INSERT INTO logs (  
+            group_name, account_owner, account_worker, account_type,  
+            date_worked, minutes_worked, earnings_naira, source_type  
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)  
+        `, [group_name, account_owner, account_worker, "ARCHIVE", today, 0, 0, "cron"]);  
 
-            // Update ping memory
-      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
-      console.log("📡 Ping status updated for Floater:", lastArchivePing);
+        inserted++;  
+        console.log(`✅ SMART CRON inserted 0-min record for ${account_worker} (${group_name})`);  
+      }  
 
+      // STEP 3: Summary and update CRON health  
+      console.log(`🏁 SMART CRON finished → total processed: ${activeWorkers.rowCount}, new inserts: ${inserted}, skipped: ${skipped}`);  
+      updateCronHealth(today, inserted, true);  
 
-      // 🟩 STEP 2: PING BACK TO FLOATER CLIENTS
-      const floaterEndpoint = "http://127.0.0.1:3000/api/ping/archive"; // Floater local listener (Electron)
+      // STEP 4: PING Floater (optional, for local app sync)  
+      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };  
+      console.log("📡 SMART CRON ping status updated for Floater:", lastArchivePing);  
 
-      try {
-        const pingResponse = await axios.post(floaterEndpoint, {
-          status: "ARCHIVE_COMPLETE",
-          date: today,
-        });
-        console.log("📡 Ping-back sent to Floater:", pingResponse.data);
-        updateCronHealth(today, workers.rows.length, true);
-        resetPingStatus();
-      } catch (pingErr) {
-        console.warn("⚠️ Could not reach Floater for ping-back:", pingErr.message);
-        updateCronHealth(today, 0, false, pingErr.message);
-      }
-    } catch (err) {
-      console.error("❌ CRON auto-archive error:", err);
-    }
-  },
-  {
-    timezone: "Africa/Lagos",
-  }
-);
+      try {  
+        await axios.post("http://127.0.0.1:3000/api/ping/archive", {  
+          status: "ARCHIVE_COMPLETE",  
+          date: today,  
+        });  
+        console.log("📡 SMART CRON ping-back sent successfully to Floater.");  
+        resetPingStatus();  
+      } catch (pingErr) {  
+        console.warn("⚠️ SMART CRON could not reach Floater for ping-back:", pingErr.message);  
+      }  
+
+    } catch (err) {  
+      console.error("❌ SMART CRON error:", err.message);  
+      updateCronHealth(today, 0, false, err.message);  
+    }  
+  },  
+  { timezone: "Africa/Lagos" }  
+);  
+
 
 // ================================================================
 // 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
@@ -186,6 +214,64 @@ app.get("/api/ping/archive-status", (req, res) => {
 }); 
 
 // ================================================================
+// 🧹 SMART SECURITY + AUTO-PRUNE — Phase 2F
+// Cleans inactive registry entries & prevents duplicates
+// Runs daily at 08:10 AM WAT (after CRON finishes)
+// ================================================================
+
+cron.schedule(
+  "10 8 * * *", // 8:10 AM WAT
+  async () => {
+    const now = new Date().toISOString().split("T")[0];
+    console.log(`🧹 AUTO-PRUNE: Checking for inactive workers on ${now}`);
+
+    try {
+      // 1️⃣  Remove entries dormant > 30 days
+      const prune = await pool.query(
+        `DELETE FROM active_registry
+         WHERE last_active < NOW() - INTERVAL '30 days'
+         RETURNING group_name, account_owner, account_worker;`
+      );
+
+      if (prune.rowCount > 0) {
+        console.log(`🧼 Removed ${prune.rowCount} inactive registry entries.`);
+        prune.rows.forEach(r =>
+          console.log(`   ⏳ ${r.account_worker} (${r.group_name} → ${r.account_owner}) removed.`)
+        );
+      } else {
+        console.log("✅ Registry clean — no inactive workers to prune today.");
+      }
+
+      // 2️⃣  Verify no duplicates (shouldn’t happen, but safe check)
+      await pool.query(`
+        DELETE FROM active_registry a
+        USING active_registry b
+        WHERE a.ctid < b.ctid
+          AND a.group_name = b.group_name
+          AND a.account_owner = b.account_owner
+          AND a.account_worker = b.account_worker;
+      `);
+
+      console.log("🧠 Duplicate registry check complete — OK.");
+
+      // 3️⃣  Update CRON health report
+      updateCronHealth(now, prune.rowCount, true);
+    } catch (err) {
+      console.error("❌ AUTO-PRUNE error:", err.message);
+      lastPruneRun = {
+      date: now,
+      removed: 0,
+      success: false,
+      error: err.message,
+    };
+      updateCronHealth(now, 0, false, err.message);
+    }
+  },
+  { timezone: "Africa/Lagos" }
+);
+
+
+// ================================================================
 // 🟩 START SERVER
 // ================================================================
 const PORT = process.env.PORT || 5000;
@@ -200,7 +286,14 @@ let lastCronRun = {
   lastPingError: null,
 };
 
-// Small helper to update cron run info
+// ✅ Move this outside the function
+let lastPruneRun = {
+  date: null,
+  removed: 0,
+  success: false,
+  error: null,
+};
+
 function updateCronHealth(date, insertedCount, pingStatus, errorMsg = null) {
   lastCronRun = {
     date,
@@ -211,13 +304,33 @@ function updateCronHealth(date, insertedCount, pingStatus, errorMsg = null) {
   console.log("📊 Updated CRON health:", lastCronRun);
 }
 
-// Add GET endpoint for diagnostics
+// ================================================================
+// 🧭 CRON STATUS ENDPOINT — Combined Archive + Auto-Prune Summary
+// ================================================================
 app.get("/api/cron/status", (req, res) => {
   res.json({
-    lastRun: lastCronRun.date || "No CRON run recorded yet",
-    zeroMinuteInserts: lastCronRun.inserted,
-    pingSuccess: lastCronRun.pingSuccess,
-    pingError: lastCronRun.lastPingError,
+    archive: {
+      lastRunDate: lastCronRun.date || "No archive run yet",
+      totalProcessed: lastCronRun.inserted || 0,
+      pingSuccess: lastCronRun.pingSuccess || false,
+      lastPingError: lastCronRun.lastPingError || null,
+      summary: `🕗 ARCHIVE → ${lastCronRun.date || "N/A"} | ✅ Inserts: ${
+        lastCronRun.inserted || 0
+      } | 📡 Ping: ${lastCronRun.pingSuccess ? "OK" : "FAILED"}${
+        lastCronRun.lastPingError ? " ⚠️ " + lastCronRun.lastPingError : ""
+      }`,
+    },
+    prune: {
+      lastRunDate: lastPruneRun.date || "No prune run yet",
+      totalRemoved: lastPruneRun.removed || 0,
+      success: lastPruneRun.success || false,
+      lastError: lastPruneRun.error || null,
+      summary: `🧹 PRUNE → ${lastPruneRun.date || "N/A"} | 🗑️ Removed: ${
+        lastPruneRun.removed || 0
+      } | Status: ${lastPruneRun.success ? "OK" : "FAILED"}${
+        lastPruneRun.error ? " ⚠️ " + lastPruneRun.error : ""
+      }`,
+    },
   });
 });
 

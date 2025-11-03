@@ -196,43 +196,82 @@ button.tabBtn.active {
 .dashboard-table td:nth-child(10) {  
   color: #facc15; /* bright gold highlight for ₦ Total */  
 }  
-  
-/* Footer row totals */  
-tfoot td {  
-  background: #111315;  
-  border-top: 2px solid #22c55e;  
-  font-size: 15px;  
-  letter-spacing: 0.4px;  
-  text-align: right;  
-  padding: 14px 16px;  
-  color: #eaeaea;  
-  box-shadow: inset 0 3px 3px rgba(0,0,0,0.2);  
-}
-
-/* === Date Headers === */
+   
+/* === FINAL UNIFIED DATE HEADER — PERFECT FIT & ALIGNMENT === */
 .date-header {
-  background: #151a17;
-  color: var(--color-accent);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-top: 10px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: background 0.2s ease, transform 0.2s ease;
+  gap: 8px;
+  padding: 8px 16px;                  /* Balanced padding */
+  margin-top: 10px;
+  width: auto;                        /* Let it size naturally */
+  min-width: 200px;                   /* Stable minimum width */
+  max-width: 100%;                    /* Never overflow container */
+  box-sizing: border-box;
+
+  white-space: nowrap;                /* Keep everything in one line */
+  overflow: visible;                  /* Nothing gets clipped */
+  text-overflow: unset;               /* Disable the ... */
+  position: relative;                 /* For internal chevron */
+  z-index: 3;
+
+  background: #151a17;
+  border-left: 3px solid #22c55e;
+  border-radius: 6px;
+  box-shadow: inset 0 0 6px rgba(34,197,94,0.25);
+  color: #22c55e;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;                   /* Nice vertical balance */
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
 }
+
 .date-header:hover {
-  background: rgba(0,200,83,0.15);
+  background: rgba(34,197,94,0.12);
   transform: translateY(-1px);
 }
 
-.chevron { transition: transform 0.25s ease; }
-.collapsed .chevron { transform: rotate(-90deg); }
+/* Keep date text clean and contained (icon + date) */
+.date-header > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                           /* space between icon and text */
+  overflow: visible;                  /* full text visible */
+  white-space: nowrap;
+}
 
-.muted { color: var(--color-muted-dark); font-size: 13px; }
+/* Chevron — always inside box, vertically centered */
+.date-header .chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform-origin: center;
+  transition: transform 0.25s ease;
+}
+
+.date-header.collapsed .chevron {
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+/* Prevent rows from overlapping the header */
+.day-section { position: relative; z-index: 1; }
+
+
+
+
+.muted { color: var(--color-muted-dark); font-size: 13px; } 
+/* === date-header single-line + chevron containment patch === */
+
+
 
 /* === Mobile Responsiveness === */
 @media (max-width:700px) {
@@ -339,17 +378,6 @@ body {
   width: 90px;
 }
 
-/* Make the totals footer feel like part of the table */
-tfoot td {
-  background: #111315;
-  border-top: 2px solid #0a84ff;
-  font-size: 15px;
-  letter-spacing: 0.4px;
-  text-align: right;
-  padding: 14px 16px;
-  box-shadow: inset 0 3px 3px rgba(0,0,0,0.2);
-}
-
 /* Add consistent vertical spacing inside cards (mobile mode) */
 @media (max-width:700px) {
   body {
@@ -410,10 +438,7 @@ button:hover, select:focus, input:focus {
   0% { box-shadow: 0 0 0px rgba(34,197,94,0); }
   50% { box-shadow: 0 0 15px rgba(34,197,94,0.45); }
   100% { box-shadow: 0 0 0px rgba(34,197,94,0); }
-}
-tfoot td {
-  animation: pulseFooter 6s ease-in-out infinite;
-  border-top: 2px solid #22c55e !important;
+
 }
 
 /* 4C-3: Header Gradient Depth */
@@ -453,15 +478,7 @@ button.tabBtn:hover {
   background: rgba(34,197,94,0.3);
   transform: translateY(-2px);
 }
-
-/* 4C-7: Table Totals Unified Accent */
-tfoot td {
-  background: #111315;
-  color: #c6f6d5;
-  font-size: 15px;
-  letter-spacing: 0.4px;
-  font-weight: 600;
-} 
+ 
 /* 4C-8: Card Glow Accent Mode */
 .dashboard-table {
   box-shadow:
@@ -478,7 +495,24 @@ tfoot td {
   transition: box-shadow 1.2s ease, color 1.2s ease;
   border-top: 2px solid #22c55e;
   font-weight: 600;
+} 
+/* === FOOTER — FINAL VISUAL POLISH === */
+tfoot td {
+  background: #111315;
+  border-top: 2px solid #22c55e;
+  color: #c6f6d5;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  text-align: center;               /* ✅ center aligns all content */
+  padding: 14px 16px;
+  border-radius: 0 0 8px 8px;
+  text-shadow: 0 0 6px rgba(34,197,94,0.25);
+  box-shadow: inset 0 3px 3px rgba(0,0,0,0.2);
+  animation: pulseFooter 6s ease-in-out infinite;
+  transition: color 0.4s ease, box-shadow 0.4s ease;
 }
+
 /* ====================================================== */
 /* === PHASE 4G — FINAL MOTION POLISH & FADE TRANSITIONS === */
 /* ====================================================== */
@@ -663,8 +697,9 @@ function toHMS(mins){
 function toDecimalH(mins){ return (mins/60).toFixed(2); }
 
 /* ---------- state ---------- */
+let dailyTotals ={};
 let allLogs = [];
-let dashboardState = {
+let dashboardState = { 
   currentGroup: "ADS",
   showAllMode: false,
   currentDay: null,         // ISO date string for single-day view
@@ -686,8 +721,8 @@ function getMostRecentArchivedDate(arr){
 
 const BACKEND_URL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
-    ? "https://eworkers-backend.onrender.com"
-    : "https://eworkers-backend.onrender.com";
+    ? "http://127.0.0.1:5000"
+    : "https://eworkers-backend.onrender.com"; 
     
 /* ---------- load data + init UI ---------- */
 async function loadData(){
@@ -887,7 +922,7 @@ filtered.forEach(r => {
 
 const monthlyTotals = {};   // ₦ cumulative per worker-owner per month
 const monthlyExtremes = {}; // true min/max minutes per worker-owner per month
-const dailyTotals = {};     // holds per-day total minutes (for accurate monthly comparison)
+dailyTotals = {};     // holds per-day total minutes (for accurate monthly comparison)
 
 // Step 1 — Aggregate all logs into daily totals (normalize to Lagos time)
 filtered.forEach(r => {
@@ -957,9 +992,19 @@ console.log("==================================");
   let groupTotalMin = 0;
   let groupTotalEarn = 0;
 
-  const targets = dashboardState.showAllMode
-    ? Object.keys(grouped).sort()
-    : [ dashboardState.currentDay || getMostRecentArchivedDate(allLogs) ];
+ // === 🧭 SMART MONTH FILTER FOR SHOW-ALL HEADERS (Scoped Safe Version) ===
+{
+  let selectedDate = document.getElementById("dayPicker").value || dashboardState.currentDay;
+  let monthScope = selectedDate ? selectedDate.slice(0, 7) : new Date().toISOString().slice(0, 7);
+  let [yr, mo] = monthScope.split("-").map(Number);
+  let nextM = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, "0")}`;
+
+  var targets = dashboardState.showAllMode
+    ? Object.keys(grouped)
+        .filter(d => d >= `${monthScope}-01` && d < `${nextM}-01`)
+        .sort()
+    : [dashboardState.currentDay || getMostRecentArchivedDate(allLogs)];
+}
 
   targets.forEach(dateKey => {
     const recs = grouped[dateKey] || [];
@@ -1072,27 +1117,54 @@ const maxHrs =
     }
   });
 
-  // === Phase 4D — Dynamic Totals Highlight (Premium Glass Feel) ===
-  const totalsCell = document.getElementById('groupTotals');
-    // 🧾 Compute full-month totals for current group only (finalized)
-  let fullMonthMinutes = 0;
-  let fullMonthEarnings = 0;
+// === ✅ FINAL FIX v4 — True Monthly Totals via allLogs (Lagos-normalized) ===
+const totalsCell = document.getElementById("groupTotals");
 
-  filtered.forEach(r => {
-    if ((r.group_name || "ADS") !== dashboardState.currentGroup) return;
-    fullMonthEarnings += Number(r.earnings_naira || 0);
-  });
+// Determine active month (YYYY-MM)
+let activeDate = document.getElementById("dayPicker").value;
+if (!activeDate) activeDate = dashboardState.currentDay || getMostRecentArchivedDate(allLogs);
+const activeMonth = activeDate ? activeDate.slice(0, 7) : null;
+const currentGroup = dashboardState.currentGroup || "ADS";
 
-  Object.values(monthlyExtremes).forEach(v => {
-    fullMonthMinutes += v.max;
-  });
+// Build a ledger per worker-owner-date (Lagos-normalized)
+const ledger = {};
+(allLogs || []).forEach(r => {
+  if (!r.work_date) return;
+  if ((r.group_name || "ADS") !== currentGroup) return;
 
-  // Update group footer with month totals
-  totalsCell.textContent =
-  `${dashboardState.currentGroup} Total (Month): ${toHMS(fullMonthMinutes)} (≈ ${toDecimalH(fullMonthMinutes)} h) | ₦ ${fullMonthEarnings}`;
-  // ⚡ Add flash pulse when totals change
-  totalsCell.style.animation = "footerFlash 1.6s ease";
-  setTimeout(() => totalsCell.style.animation = "", 1700);
+  // Normalize to Lagos local date (+1h)
+  const dateObj = new Date(r.work_date);
+  const local = new Date(dateObj.getTime() + 60 * 60 * 1000);
+  const d = local.toISOString().split("T")[0];
+  if (d.slice(0, 7) !== activeMonth) return;
+
+  const key = `${(r.account_worker || "").trim()}|${(r.account_owner || "").trim()}|${d}`;
+  if (!ledger[key]) ledger[key] = { mins: 0, earn: 0 };
+  ledger[key].mins += Number(r.minutes_worked || 0);
+  ledger[key].earn += Number(r.earnings_naira || 0);
+});
+
+// Aggregate month totals from the ledger
+let totalMinutes = 0;
+let totalEarnings = 0;
+Object.values(ledger).forEach(v => {
+  totalMinutes += v.mins;
+  totalEarnings += v.earn;
+});
+
+// Format month label (e.g., "October 2025")
+let monthLabel = "N/A";
+if (activeMonth) {
+  const [yr, mo] = activeMonth.split("-");
+  monthLabel = `${new Date(`${yr}-${mo}-01`).toLocaleString("en-US", { month: "long" })} ${yr}`;
+}
+
+// Display footer total
+totalsCell.textContent =
+  `${currentGroup} — ${monthLabel} Total: ${toHMS(totalMinutes)} (≈ ${toDecimalH(totalMinutes)} h) | ₦${totalEarnings}`;
+totalsCell.style.animation = "footerFlash 1.5s ease";
+setTimeout(() => (totalsCell.style.animation = ""), 1600);
+
 
   // ⚡ Add table pulse feedback
   const table = document.getElementById("logTable");
