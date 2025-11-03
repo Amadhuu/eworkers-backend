@@ -108,15 +108,41 @@ app.post("/api/archive/run", async (req, res) => {
     res.status(500).json({ message: "Error saving archive", details: err.message });
   }
 });
-
-// ================================================================  
-// 🟩 CRON JOB — SERVER AUTO-ARCHIVE (07:55 AM WAT Daily) + PING-BACK  
-// ================================================================  
-const axios = require("axios"); // <== Add near top if not already imported  
+// ================================================================
+// 🧩 Helper — Get last known account_type for a worker
+// ================================================================
+async function getLastKnownAccountType(worker, owner, group) {
+  try {
+    const q = `
+      SELECT account_type
+      FROM logs
+      WHERE account_worker = $1
+        AND account_owner = $2
+        AND group_name = $3
+        AND minutes_worked > 0
+        AND account_type IS NOT NULL
+      ORDER BY date_worked DESC
+      LIMIT 1;
+    `;
+    const r = await pool.query(q, [worker, owner, group]);
+    if (r.rowCount > 0) {
+      console.log(`🧠 Found last known account_type for ${worker}: ${r.rows[0].account_type}`);
+      return r.rows[0].account_type;
+    } else {
+      console.log(`⚪ No previous account_type found for ${worker} — defaulting to ARCHIVE`);
+      return null;
+    }
+  } catch (err) {
+    console.error("❌ Error fetching last known account type:", err.message);
+    return null;
+  }
+}  
+  
 
 // ================================================================  
 // 🧠 SMART CRON JOB — Auto-Archive Only Active Floater Workers (Diagnostic Enhanced)  
 // ================================================================  
+const axios = require("axios");
 cron.schedule(  
   "55 7 * * *",  
   async () => {  
@@ -157,15 +183,20 @@ cron.schedule(
           continue;  
         }  
 
-        await pool.query(`  
-          INSERT INTO logs (  
-            group_name, account_owner, account_worker, account_type,  
-            date_worked, minutes_worked, earnings_naira, source_type  
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)  
-        `, [group_name, account_owner, account_worker, "ARCHIVE", today, 0, 0, "cron"]);  
+        // 🧠 Step: Fetch last known account type before inserting
+        const lastType = await getLastKnownAccountType(account_worker, account_owner, group_name);
+        const effectiveType = lastType || "ARCHIVE";
 
-        inserted++;  
-        console.log(`✅ SMART CRON inserted 0-min record for ${account_worker} (${group_name})`);  
+        await pool.query(`
+          INSERT INTO logs (
+            group_name, account_owner, account_worker, account_type,
+            date_worked, minutes_worked, earnings_naira, source_type
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        `, [group_name, account_owner, account_worker, effectiveType, today, 0, 0, "cron"]);
+
+        console.log(`✅ SMART CRON inserted 0-min record for ${account_worker} (${group_name}) [type=${effectiveType}]`);
+
+        inserted++;    
       }  
 
       // STEP 3: Summary and update CRON health  
