@@ -363,6 +363,36 @@ app.get("/api/cron/status", (req, res) => {
       }`,
     },
   });
+}); 
+
+// ================================================================
+// 🧭 WORKER REGISTRY ENDPOINT — Phase 3B
+// Provides group → owner mapping for Floater dropdowns
+// ================================================================
+app.get("/api/registry", async (req, res) => {
+  try {
+    const q = `
+      SELECT group_name, account_owner
+      FROM worker_registry
+      ORDER BY group_name, account_owner;
+    `;
+    const result = await pool.query(q);
+
+    // Transform rows into structured { ADS: [...], IJS: [...], MRK: [...], SAZ: [...] }
+    const registry = {};
+    result.rows.forEach(r => {
+      const group = r.group_name?.trim() || "Unknown";
+      const owner = r.account_owner?.trim() || "(unspecified)";
+      if (!registry[group]) registry[group] = [];
+      if (!registry[group].includes(owner)) registry[group].push(owner);
+    });
+
+    console.log("📦 Registry fetched successfully — groups:", Object.keys(registry).length);
+    res.json({ registry });
+  } catch (err) {
+    console.error("❌ Error fetching worker registry:", err.message);
+    res.status(500).json({ error: "Failed to fetch worker registry" });
+  }
 });
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
