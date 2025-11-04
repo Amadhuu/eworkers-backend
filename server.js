@@ -146,7 +146,12 @@ const axios = require("axios");
 cron.schedule(  
   "55 7 * * *",  
   async () => {  
-    const today = new Date().toISOString().split("T")[0];  
+    // 🧭 SmartCRON cycle alignment — use previous day's date (8AM–8AM cycle)
+    const now = new Date();
+    // Shift back 1 day to represent the completed workday
+    now.setDate(now.getDate() - 1);
+    const today = now.toISOString().split("T")[0];
+    console.log("📅 SMART CRON aligned workday →", today);  
     console.log("🧭 SMART CRON started → checking active_registry for active workers...");  
     console.log("🕗 SMART CRON: Starting daily auto-archive at 07:55 AM WAT →", today);  
 
