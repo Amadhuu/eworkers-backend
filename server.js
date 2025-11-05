@@ -11,6 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/downloads", express.static(path.join(__dirname,"public", "downloads")));
 
 console.log("✅ Connected to database:", process.env.DATABASE_URL);
 
@@ -412,6 +413,17 @@ app.get("/api/registry", async (req, res) => {
     console.error("❌ Error fetching worker registry:", err.message);
     res.status(500).json({ error: "Failed to fetch worker registry" });
   }
+});  
+
+// ================================================================
+// 🌍 Serve Dashboard Route — Phase 4 Integration
+// ================================================================
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
+});
+
+app.get("/dashboard/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 });
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));

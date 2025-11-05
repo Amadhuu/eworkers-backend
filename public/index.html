@@ -1,1297 +1,248 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>E-Workers Dashboard</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<style>
-/* === Floater Green Date Picker Fix === */
-input[type="date"] {
-  border: 1px solid #007a33 !important;
-  color-scheme: dark;
-}
-input[type="date"]:focus {
-  outline: none !important;
-  border-color: #00c46a !important;
-  box-shadow: 0 0 6px #00c46a !important;
-} 
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Time Tracker | E-Workers</title>
 
-/* === Phase 4B-1 — Color + Typography Polish (non-destructive) === */
+  <!-- Brand Colors -->
+  <style>
+    :root {
+      --accent: #00ff88;
+      --bg: radial-gradient(circle at center, #0d1117 0%, #050708 100%);
+      --text: #e0e5e8;
+    }
 
-/* === FLOATER GREEN UNIVERSAL THEME — Phase 4B-Final === */
-:root {
-  --color-bg-dark: #0d1210;          /* dark base, slight green tint */
-  --color-card-dark: #151a17;        /* card container dark */
-  --color-border-dark: #1e2421;      /* subtle border tone */
-  --color-accent: #00c853;           /* Floater green accent */
-  --color-accent-hover: #00e676;     /* lighter mint hover */
-  --color-muted-dark: #8da89a;       /* soft muted text */
-  --font-main: "Inter", "Segoe UI", system-ui, sans-serif;
-}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-body {
-  font-family: var(--font-main);
-  background: var(--color-bg-dark);
-  color: #eaeaea;
-  margin: 0;
-  padding: 18px;
-  transition: background 0.4s ease, color 0.4s ease;
-}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Poppins", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow: hidden;
+    }
 
-h1 {
-  text-align: center;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  margin: 0 0 16px;
-  color: var(--color-accent);
-  text-shadow: 0 0 10px rgba(0,200,83,0.25);
-}
+    /* --- ICON & TITLE --- */
+    h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
 
-/* === Controls Section === */
-#controls {
+    h1 img {
+      width: 56px;
+      height: 56px;
+      filter: drop-shadow(0 0 25px rgba(0, 255, 136, 0.2));
+    }
+
+    /* --- INTRO TEXT --- */
+    p {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #cfd6da;
+      max-width: 520px;
+      opacity: 0.9;
+      margin-bottom: 28px;
+    }
+
+    /* --- BUTTONS --- */
+    .downloads {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .downloads a {
+      display: inline-block;
+      text-decoration: none;
+      background: var(--accent);
+      color: #050708;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      transition: all 0.25s ease;
+    }
+
+    .downloads a:hover {
+      background: #0aff95;
+      transform: translateY(-3px);
+      box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+    }
+
+    /* --- FOOTER --- */
+    footer {
+      font-size: 0.85rem;
+      color: #98a1a5;
+      margin-top: 45px;
+      opacity: 0.75;
+    }
+
+    footer strong {
+      color: var(--accent);
+    }
+
+    /* --- SLIDE-IN ANIMATION --- */
+    @keyframes fadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    h1 img { margin-right: 8px; }
+
+    main {
+      animation: fadeUp 0.8s ease forwards;
+    } 
+    h1 {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-select,
-input,
-button {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border-dark);
-  background: #161a18;
-  color: #f0f0f0;
-  font-size: 14px;
-  font-family: var(--font-main);
-  transition: all 0.25s ease;
-}
-
-/* === Group Tabs === */
-button.tabBtn {
-  background: #1a1f1c;
-  border: none;
-  color: #eee;
-  padding: 6px 14px;
-  margin: 4px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-  transition: background 0.25s ease, transform 0.15s ease;
-}
-button.tabBtn:hover { transform: translateY(-2px); background: #223128; }
-button.tabBtn.active {
-  background: var(--color-accent);
-  color: #fff;
-  box-shadow: 0 0 10px rgba(0,200,83,0.35);
-}
-
-/* === Buttons === */
-.action-btn {
-  background: var(--color-accent);
-  border: none;
-  color: #fff;
-  padding: 7px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-}
-.action-btn:hover {
-  background: var(--color-accent-hover);
-  box-shadow: 0 0 10px rgba(0,230,118,0.3);
-  transform: translateY(-2px);
-}
-
-/* === Main Table === */
-.dashboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-card-dark);
-  margin-top: 14px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 16px rgba(0,0,0,0.35);
-}
-
-.dashboard-table th,
-.dashboard-table td {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-dark);
-  text-align: center;
-  font-size: 14px;
-  color: #eaeaea;
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* === PROFESSIONAL TABLE COLOR HIERARCHY — CAPTAIN'S PERFECT ROUTE === */  
-  
-.dashboard-table th,  
-.dashboard-table td {  
-  padding: 10px 12px;  
-  border: 1px solid #232323;  
-  text-align: center;  
-  font-size: 14px;  
-  transition: background 0.3s ease, color 0.3s ease;  
-  color: #eaeaea;  
-  background: #111;  
-}  
-  
-/* Header row */  
-.dashboard-table th {  
-  background: #17191b;  
-  font-weight: 600;  
-  text-transform: uppercase;  
-  letter-spacing: 0.4px;  
-  position: sticky;  
-  top: 0;  
-  z-index: 10;  
-}  
-  
-/* Hover feedback */  
-.dashboard-table tr:hover td {  
-  background: #1b1f22;  
-}  
-  
-/* Column-specific palette */  
-.dashboard-table td:nth-child(1),  
-.dashboard-table td:nth-child(2),  
-.dashboard-table td:nth-child(3),  
-.dashboard-table td:nth-child(4) {  
-  color: #ffffff; /* neutral white for identifiers */  
+h1 .brand-icon {
+  width: 60px;
+  height: 60px;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 8px #00ff88);
+  transform: translateY(2px);
 } 
-/* Make Account column narrower */
-.dashboard-table th:nth-child(3),
-.dashboard-table td:nth-child(3) {
-  width: 100px;
-  max-width: 120px;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-  
-.dashboard-table td:nth-child(5),  
-.dashboard-table td:nth-child(8) {  
-  color: #22c55e; /* primary green for productivity */  
-}  
-  
-.dashboard-table td:nth-child(6),  
-.dashboard-table td:nth-child(7) {  
-  color: #7ecb91; /* muted mint-gray for min/max hours */  
-}  
-  
-.dashboard-table td:nth-child(9) {  
-  color: #eab308; /* warm yellow-gold for ₦ Today */  
-}
-.dashboard-table td:nth-child(9),
-.dashboard-table td:nth-child(10) {
-  text-shadow: 0 0 4px rgba(234, 179, 8, 0.4);
-}
-  
-.dashboard-table td:nth-child(10) {  
-  color: #facc15; /* bright gold highlight for ₦ Total */  
-}  
-   
-/* === FINAL UNIFIED DATE HEADER — PERFECT FIT & ALIGNMENT === */
-.date-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 16px;                  /* Balanced padding */
-  margin-top: 10px;
-  width: auto;                        /* Let it size naturally */
-  min-width: 200px;                   /* Stable minimum width */
-  max-width: 100%;                    /* Never overflow container */
-  box-sizing: border-box;
-
-  white-space: nowrap;                /* Keep everything in one line */
-  overflow: visible;                  /* Nothing gets clipped */
-  text-overflow: unset;               /* Disable the ... */
-  position: relative;                 /* For internal chevron */
-  z-index: 3;
-
-  background: #151a17;
-  border-left: 3px solid #22c55e;
-  border-radius: 6px;
-  box-shadow: inset 0 0 6px rgba(34,197,94,0.25);
-  color: #22c55e;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 1.2;                   /* Nice vertical balance */
-  cursor: pointer;
-  transition: background 0.25s ease, transform 0.25s ease;
-}
-
-.date-header:hover {
-  background: rgba(34,197,94,0.12);
-  transform: translateY(-1px);
-}
-
-/* Keep date text clean and contained (icon + date) */
-.date-header > span:first-child {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;                           /* space between icon and text */
-  overflow: visible;                  /* full text visible */
-  white-space: nowrap;
-}
-
-/* Chevron — always inside box, vertically centered */
-.date-header .chevron {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  transform-origin: center;
-  transition: transform 0.25s ease;
-}
-
-.date-header.collapsed .chevron {
-  transform: translateY(-50%) rotate(-90deg);
-}
-
-/* Prevent rows from overlapping the header */
-.day-section { position: relative; z-index: 1; }
-
-
-
-
-.muted { color: var(--color-muted-dark); font-size: 13px; } 
-/* === date-header single-line + chevron containment patch === */
-
-
-
-/* === Mobile Responsiveness === */
-@media (max-width:700px) {
-  .dashboard-table thead { display:none; }
-  .dashboard-table tr {
-    display:block;
-    margin-bottom:12px;
-    border-radius:8px;
-    background:#121715;
-    padding:10px;
-  }
-  .dashboard-table td {
-    display:block;
-    text-align:left;
-    border:none;
-    padding:6px 0;
-  }
-  .dashboard-table td:before {
-    content:attr(data-label);
-    display:inline-block;
-    width:120px;
-    color:#9aa3b2;
-    font-weight:600;
-  }
-  tfoot td { text-align:left; }
-}
-
-@media (max-width:700px) {
-  .dashboard-table thead { display:none; }
-  .dashboard-table tr {
-    display:block;
-    margin-bottom:12px;
-    border-radius:8px;
-    background:#121315;
-    padding:10px;
-  }
-  .dashboard-table td {
-    display:block;
-    text-align:left;
-    border:none;
-    padding:6px 0;
-  }
-  .dashboard-table td:before {
-    content:attr(data-label);
-    display:inline-block;
-    width:120px;
-    color:#9aa3b2;
-    font-weight:600;
-  }
-  tfoot td { text-align:left; }
+.downloads a {
+  background: linear-gradient(90deg, #00ff88, #13ffa2);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
 } 
-/* === Phase 4B-2: Layout & Spacing Alignment === */
+/* ===== 💫 Premium Finishing Touch Additions ===== */
 
-/* Center dashboard content better */
-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Keep content width reasonable for readability */
-#controls, #logTable {
-  max-width: 1200px;
-  width: 100%;
-}
-
-/* Harmonize top & bottom space */
-#controls {
-  margin-top: 20px;
-  margin-bottom: 20px;
-}
-
-/* Subtle “card” shadow for table wrapper */
-.dashboard-table {
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  overflow: hidden;
-} 
-.dashboard-table th,
-.dashboard-table td {
-  width: auto;
-}
-
-.dashboard-table th:nth-child(1),
-.dashboard-table td:nth-child(1) { width: 120px; } /* Owner */
-.dashboard-table th:nth-child(2),
-.dashboard-table td:nth-child(2) { width: 120px; } /* Worker */
-.dashboard-table th:nth-child(3),
-.dashboard-table td:nth-child(3) { width: 100px; } /* Account */
-.dashboard-table th:nth-child(4),
-.dashboard-table td:nth-child(4) { width: 120px; } /* Date */
-.dashboard-table th:nth-child(5),
-.dashboard-table td:nth-child(5),
-.dashboard-table th:nth-child(6),
-.dashboard-table td:nth-child(6),
-.dashboard-table th:nth-child(7),
-.dashboard-table td:nth-child(7),
-.dashboard-table th:nth-child(8),
-.dashboard-table td:nth-child(8),
-.dashboard-table th:nth-child(9),
-.dashboard-table td:nth-child(9),
-.dashboard-table th:nth-child(10),
-.dashboard-table td:nth-child(10) {
-  width: 90px;
-}
-
-/* Add consistent vertical spacing inside cards (mobile mode) */
-@media (max-width:700px) {
-  body {
-    padding: 12px;
-  }
-  .dashboard-table tr {
-    padding: 14px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  .dashboard-table td {
-    padding: 8px 0;
-  }
-  #controls {
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-/* Improve hover depth and transitions globally */
-button, select, input {
-  transition: all 0.25s ease, transform 0.15s ease;
-}
-button:hover, select:focus, input:focus {
-  transform: translateY(-2px);
-} 
-/* === PHASE 4C — Floater Green Visual System === */
-
-/* 4C-1: Column Color Mapping */
-.dashboard-table td:nth-child(5),  /* Hours */
-.dashboard-table td:nth-child(8) { /* Dec Hrs */
-  color: #22c55e;
-  font-weight: 600;
-}
-
-.dashboard-table td:nth-child(6) { /* Min Hrs */
-  color: #2dd4bf;
-  font-weight: 500;
-}
-
-.dashboard-table td:nth-child(7) { /* Max Hrs */
-  color: #38bdf8;
-  font-weight: 500;
-}
-
-.dashboard-table td:nth-child(9) { /* ₦ Today */
-  color: #facc15;
-  font-weight: 600;
-}
-
-.dashboard-table td:nth-child(10) { /* ₦ Total */
-  color: #eab308;
-  font-weight: 600;
-}
-
-/* 4C-2: Footer Pulse Animation */
-@keyframes pulseFooter {
-  0% { box-shadow: 0 0 0px rgba(34,197,94,0); }
-  50% { box-shadow: 0 0 15px rgba(34,197,94,0.45); }
-  100% { box-shadow: 0 0 0px rgba(34,197,94,0); }
-
-}
-
-/* 4C-3: Header Gradient Depth */
-.dashboard-table th {
-  background: linear-gradient(to bottom, #1b1d1f, #101213);
-  color: #d1d5db;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.4);
-}
-
-/* 4C-4: Row Hover Cohesion */
-.dashboard-table tr:hover td {
-  background: rgba(34,197,94,0.1);
-  transition: background 0.3s ease;
-}
-
-/* 4C-5: Date Header Glow Alignment */
-.date-header {
-  background: #17191b;
-  color: #22c55e;
-  border-left: 4px solid #22c55e;
-  box-shadow: inset 0 0 6px rgba(34,197,94,0.2);
-  font-weight: 600;
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-.date-header:hover {
-  background: rgba(34,197,94,0.12);
-  border-color: #38ef7d;
-}
-
-/* 4C-6: Button Active Harmony */
-button.tabBtn.active {
-  background: #22c55e !important;
-  color: #fff !important;
-  box-shadow: 0 0 12px rgba(34,197,94,0.45);
-}
-button.tabBtn:hover {
-  background: rgba(34,197,94,0.3);
-  transform: translateY(-2px);
-}
- 
-/* 4C-8: Card Glow Accent Mode */
-.dashboard-table {
-  box-shadow:
-    0 0 25px rgba(34,197,94,0.15),
-    0 0 60px rgba(34,197,94,0.05);
-  transition: box-shadow 1.2s ease;
-}
-.dashboard-table:hover {
-  box-shadow:
-    0 0 35px rgba(34,197,94,0.25),
-    0 0 80px rgba(34,197,94,0.12);
-} 
-#groupTotals {
-  transition: box-shadow 1.2s ease, color 1.2s ease;
-  border-top: 2px solid #22c55e;
-  font-weight: 600;
-} 
-/* === FOOTER — FINAL VISUAL POLISH === */
-tfoot td {
-  background: #111315;
-  border-top: 2px solid #22c55e;
-  color: #c6f6d5;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.4px;
-  text-align: center;               /* ✅ center aligns all content */
-  padding: 14px 16px;
-  border-radius: 0 0 8px 8px;
-  text-shadow: 0 0 6px rgba(34,197,94,0.25);
-  box-shadow: inset 0 3px 3px rgba(0,0,0,0.2);
-  animation: pulseFooter 6s ease-in-out infinite;
-  transition: color 0.4s ease, box-shadow 0.4s ease;
-}
-
-/* ====================================================== */
-/* === PHASE 4G — FINAL MOTION POLISH & FADE TRANSITIONS === */
-/* ====================================================== */
-
-/* Smooth page fade-in */
-body {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeInBody 0.7s ease forwards;
-}
-@keyframes fadeInBody {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Fade-in hierarchy: controls, table */
-#controls {
-  opacity: 0;
-  animation: fadeInControls 0.8s ease 0.25s forwards;
-}
-.dashboard-table {
-  opacity: 0;
-  transform: translateY(8px);
-  animation: fadeInTable 0.9s ease 0.5s forwards;
-}
-@keyframes fadeInControls { to { opacity: 1; } }
-@keyframes fadeInTable {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Group button interaction feedback */
-button.tabBtn {
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-}
-button.tabBtn:active {
-  transform: scale(0.95);
-}
-button.tabBtn.active {
-  transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
-}
-
-/* Table row fade-in + hover depth */
-.dashboard-table tr {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeInRow 0.4s ease forwards;
-}
-.dashboard-table tr:nth-child(even) { animation-delay: 0.1s; }
-.dashboard-table tr:nth-child(odd) { animation-delay: 0.2s; }
-@keyframes fadeInRow {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.dashboard-table tr:hover td {
-  background: #1b1f22;
-  transition: background 0.3s ease;
-}
-
-/* Date-header toggle animation (expand/collapse) */
-.day-section {
-  transition: all 0.35s ease;
-  opacity: 1;
-  max-height: 100px;
-  overflow: hidden;
-}
-.date-header.collapsed + .day-section {
-  opacity: 0;
-  max-height: 0;
-  padding: 0;
-}
-
-/* Totals highlight pulse */
-tfoot td {
-  position: relative;
-  overflow: hidden;
-}
-tfoot td::after {
+/* 🌌 Static premium glow background — frozen shimmer */
+body::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(34, 197, 94, 0.15);
+  background: radial-gradient(circle at center, rgba(0,255,136,0.08), rgba(0,255,136,0) 70%);
+  z-index: 0;
+  opacity: 0.08;
+}
+
+/* 🪶 Smooth intro fade for main content */
+body > * {
+  position: relative;
+  z-index: 1;
   opacity: 0;
-  animation: none;
+  transform: translateY(15px);
+  animation: riseIn 1.2s ease-out forwards;
 }
-tfoot td.glow::after {
-  animation: totalPulse 1.4s ease;
-}
-@keyframes totalPulse {
-  0% { opacity: 0; }
-  20% { opacity: 1; }
-  100% { opacity: 0; }
+body > *:nth-child(2) { animation-delay: 0.2s; }
+body > *:nth-child(3) { animation-delay: 0.4s; }
+body > *:nth-child(4) { animation-delay: 0.6s; }
+
+/* 🎯 Gentle floating pulse for the icon */
+h1 img {
+  animation: floatLogo 3.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 16px rgba(0,255,136,0.45));
 }
 
-/* Smooth fade transitions on data view changes */
-.fade-out {
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-.fade-in {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-} 
-/* === ⚡ UI FEEDBACK ANIMATIONS === */
-
-/* Table refresh pulse */
-@keyframes tablePulse {
-  0%   { transform: scale(0.985); opacity: 1; }
-  50%  { transform: scale(1.015); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+/* ✨ Lift + glow hover for download buttons */
+.downloads a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 24px rgba(0,255,136,0.55);
+  background: #13ffa2;
 }
 
-/* Footer glow flash */
-@keyframes footerFlash {
-  0% { box-shadow: 0 0 0 rgba(34,197,94,0); color: #22c55e; }
-  50% { box-shadow: 0 0 24px rgba(34,197,94,0.6); color: #6ee7b7; }
-  100% { box-shadow: 0 0 0 rgba(34,197,94,0); color: #22c55e; }
-} 
-
-</style>
+/* ===== Keyframes ===== */
+@keyframes shimmerFlow {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(50%); }
+}
+@keyframes riseIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+  </style>
 </head>
+
 <body>
-  <h1>E-Workers Dashboard</h1>
+  <main>
+    <h1>
+      <img src="/icons/icon-192.png" alt="E-TimeTracker Icon" class="brand-icon" />
+      <span>Time Tracker</span>
+    </h1>
 
-  <div id="controls">
-    <div>
-      <label>Group:</label>
-      <button class="tabBtn active" data-group="ADS">ADS</button>
-      <button class="tabBtn" data-group="IJS">IJS</button>
-      <button class="tabBtn" data-group="MRK">MRK</button>
-      <button class="tabBtn" data-group="SAZ">SAZ</button>
+    <p>
+      Focus on the work that matters.  
+      E-Time Tracker records your hours with precision, keeping your productivity seamless and stress-free.
+    </p>
+
+    <div class="downloads">
+      <a href="/downloads/E-Workers%20Floater%20Setup%201.0.0.exe">💻 Get for Windows</a>
+      <a href="/tracker/downloads/floater-v1.0-mac.zip">🍎 Get for macOS</a>
+      <a href="/dashboard/index.html">📊 Open Dashboard</a>
     </div>
 
-    <div>
-      <label>Date:</label>
-      <input id="dayPicker" type="date" />
-      <button id="showAll" class="action-btn">Show All</button>
-      <button id="toggleAll" class="action-btn">Collapse All</button>
-    </div>
-  </div>
-
-  <table id="logTable" class="dashboard-table">
-    <thead>
-      <tr>
-        <th>Owner</th>
-        <th>Worker</th>
-        <th>Account</th>
-        <th>Date</th>
-        <th>Hours</th>
-        <th>Min Hrs</th>
-        <th>Max Hrs</th>
-        <th>Dec Hrs</th>
-        <th>₦ Today</th>
-        <th>₦ Total</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-    <tfoot>
-      <tr><td colspan="10" id="groupTotals">Loading totals...</td></tr>
-    </tfoot>
-  </table>
-
-<script>
-
-/* ---------- helpers ---------- */
-function toHMS(mins){
-  const totalSeconds = Math.round(mins * 60);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-function toDecimalH(mins){ return (mins/60).toFixed(2); }
-
-/* ---------- state ---------- */
-let dailyTotals ={};
-let allLogs = [];
-let dashboardState = { 
-  currentGroup: "ADS",
-  showAllMode: false,
-  currentDay: null,         // ISO date string for single-day view
-  lastSingleDay: null,      // preserves previous single day when entering show-all
-  expandedState: true,
-  bannerSeen: false
-};
-
-/* ---------- persistence ---------- */
-function saveState(){ localStorage.setItem("dashboardState", JSON.stringify(dashboardState)); }
-function loadState(){ try { const s = JSON.parse(localStorage.getItem("dashboardState")||"{}"); Object.assign(dashboardState, s); } catch(e){} }
-
-
-/* ---------- util: most recent archived date ---------- */
-function getMostRecentArchivedDate(arr){
-  const dates = arr.map(r => r.work_date).filter(Boolean).sort((a,b) => new Date(a)-new Date(b));
-  return dates.length ? dates.at(-1) : null;
-}
-
-const BACKEND_URL =
-  location.hostname === "localhost" || location.hostname === "127.0.0.1"
-    ? "http://127.0.0.1:5000"
-    : "https://eworkers-backend.onrender.com"; 
-    
-/* ---------- load data + init UI ---------- */
-async function loadData(){
-  loadState();
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/logs`);
-    if(!res.ok) throw new Error('Failed to fetch logs');
-    allLogs = await res.json();
-  // 🧭 Smart Day Auto-Selection — only pick the latest date with valid logs in current group
-if (!dashboardState.currentDay) {
-  const groupLogs = allLogs.filter(
-    r => (r.group_name || "ADS") === dashboardState.currentGroup
-  );
-  const validDates = groupLogs
-    .map(r => r.work_date)
-    .filter(Boolean)
-    .sort((a, b) => new Date(a) - new Date(b));
-
-  if (validDates.length) {
-    dashboardState.currentDay = validDates.at(-1);
-  }
-}
-    // 🧩 Force single-day view to show the latest day on initial load
-  if (dashboardState.currentDay) {
-    document.getElementById('dayPicker').value = dashboardState.currentDay;
-    dashboardState.showAllMode = false;
-    dashboardState.lastSingleDay = dashboardState.currentDay;
+    <footer>
+      <strong>E-Workers</strong> • © 2025
+    </footer>
+  </main>
+  <script>
+  // 🧭 Toast helper (simple, reusable)
+  function showToast(message) {
+    const toast = document.createElement("div");
+    toast.textContent = message;
+    toast.style.position = "fixed";
+    toast.style.bottom = "25px";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.background = "rgba(0, 255, 136, 0.15)";
+    toast.style.color = "#00ff88";
+    toast.style.padding = "10px 18px";
+    toast.style.borderRadius = "8px";
+    toast.style.fontSize = "14px";
+    toast.style.fontWeight = "500";
+    toast.style.boxShadow = "0 0 10px rgba(0,255,136,0.25)";
+    toast.style.backdropFilter = "blur(8px)";
+    toast.style.zIndex = "9999";
+    toast.style.transition = "opacity 0.3s ease";
+    document.body.appendChild(toast);
+    setTimeout(() => (toast.style.opacity = "0"), 2200);
+    setTimeout(() => toast.remove(), 2600);
   }
 
-    // ✅ Always start fully expanded on load
-    dashboardState.expandedState = true;
-
-    // auto-detect latest completed day if no explicit single day saved
-    const latest = getMostRecentArchivedDate(allLogs);
-    if(!dashboardState.currentDay && latest) dashboardState.currentDay = latest;
-
-    // UI reflect saved state
-    document.getElementById('dayPicker').value = dashboardState.currentDay || "";
-    document.querySelectorAll('.tabBtn').forEach(b => b.classList.toggle('active', b.dataset.group === dashboardState.currentGroup));
-    document.getElementById('toggleAll').style.display = dashboardState.showAllMode ? 'inline-block' : 'none';
-
-// 🧩 Force re-render after date sync (ensures currentDay is visible)
-if (!dashboardState.currentDay) {
-  const latest = getMostRecentArchivedDate(allLogs);
-  if (latest) {
-    dashboardState.currentDay = latest;
-    document.getElementById('dayPicker').value = latest;
-  }
-}
-
-// slight delay ensures DOM update before first render
-// Prevent double-render overlap
-setTimeout(() => {
-  if (!window._renderLockActive) {
-    window._renderLockActive = true;
-    renderTable();
-    console.log('✅ Dashboard connected — rows:', allLogs.length);
-    setTimeout(() => window._renderLockActive = false, 800);
-  }
-}, 200);
-
-// 🧩 FINAL FAILSAFE — auto-focus on the most recent valid date after logs are loaded
-if (allLogs.length > 0) {
-  const groupLogs = allLogs.filter(
-    r => (r.group_name || "ADS") === dashboardState.currentGroup
-  );
-  const validDates = groupLogs
-    .map(r => r.work_date)
-    .filter(Boolean)
-    .sort((a, b) => new Date(a) - new Date(b));
-
-  if (validDates.length > 0) {
-    const latestValidDate = validDates.at(-1);
-
-    // Force latest valid date into view if none selected
-    if (!dashboardState.currentDay || dashboardState.currentDay === "") {
-      dashboardState.currentDay = latestValidDate;
-      dashboardState.showAllMode = false;
-      dashboardState.lastSingleDay = latestValidDate;
-      document.getElementById("dayPicker").value = latestValidDate;
-      console.log(`🟢 Auto-selected most recent day: ${latestValidDate}`);
-      renderTable();
-    }
-  }
-}
-
-  } catch (err) {
-    console.error('❌ Error loading logs', err);
-    const tbody = document.querySelector('#logTable tbody');
-    tbody.innerHTML = `<tr><td colspan="10" style="color:#ff7777;text-align:center">Cannot load data: ${err.message}</td></tr>`;
-  }
-}
-
-/* ---------- filters / controls ---------- */
-document.querySelectorAll('.tabBtn').forEach(btn=>{
-  btn.onclick = () => {
-    document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    dashboardState.currentGroup = btn.dataset.group;
-    saveState();
-    // if user toggles group while ticker is visible -> stop it
-    const t = document.getElementById('dashboardTickerWrap'); if(t) t.remove();
-    renderTable();
-  };
-});
-
-document.getElementById('dayPicker').onchange = e => {
-  dashboardState.currentDay = e.target.value || null;
-  dashboardState.lastSingleDay = dashboardState.currentDay;
-  dashboardState.showAllMode = false;
-  document.getElementById('toggleAll').style.display = 'none';
-  // restore Show All button style
-  const btn = 
-  document.getElementById('showAll');
-  btn.style.background = "#007a33";
-  btn.style.color = "#ffffff";
-  btn.textContent = "Show All";
-  saveState();
-  const t = document.getElementById('dashboardTickerWrap'); if(t) t.remove();
-  renderTable();
-};
-
-document.getElementById('showAll').onclick = () => {
-  const btn = document.getElementById('showAll');
-// 🧩 PATCH 2 START — Auto-expand Show All mode
-if(!dashboardState.showAllMode){
-  dashboardState.lastSingleDay = dashboardState.currentDay;
-  dashboardState.currentDay = null;
-  dashboardState.showAllMode = true;
-
-  // Auto-expand everything when entering Show All
-  dashboardState.expandedState = true;
-  setTimeout(() => {
-    document.querySelectorAll('.day-section').forEach(s => s.style.display = '');
-    document.querySelectorAll('.date-header').forEach(h => h.classList.remove('collapsed'));
-    document.getElementById('toggleAll').textContent = "Collapse All";
-  }, 200);
-
-  btn.style.background = "#007a33"; // deeper green for contrast
-  btn.style.color = "#ffffff";
-  btn.style.boxShadow = "0 0 16px rgba(0,255,128,0.55)";
-  btn.textContent = "Back to Single Day";
-  document.getElementById('toggleAll').style.display = 'inline-block';
-
-}else {
-    // leaving show all: restore last single day if present, otherwise most recent
-    dashboardState.showAllMode = false;
-    dashboardState.currentDay = dashboardState.lastSingleDay || getMostRecentArchivedDate(allLogs);
-    btn.style.background = "var(--color-accent)"; // restores normal Floater green
-    btn.style.color = "#ffffff";
-    btn.style.boxShadow = "none";
-    btn.textContent = "Show All";
-    document.getElementById('toggleAll').style.display = 'none';
-    // set the date input for clarity
-    document.getElementById('dayPicker').value = dashboardState.currentDay || "";
-  }
-  // remove ticker if active
-  const t = document.getElementById('dashboardTickerWrap'); if(t) t.remove();
-  saveState();
-  renderTable();
-};
-
-document.getElementById('toggleAll').onclick = () => {
-  if(!dashboardState.showAllMode) return;
-  dashboardState.expandedState = !dashboardState.expandedState;
-  document.getElementById('toggleAll').textContent = dashboardState.expandedState ? "Collapse All" : "Expand All";
-  document.querySelectorAll('.day-section').forEach(s => s.style.display = dashboardState.expandedState ? '' : 'none');
-  document.querySelectorAll('.date-header').forEach(h => h.classList.toggle('collapsed', !dashboardState.expandedState));
-  saveState();
-};
-
-/* ---------- rendering ---------- */
-function renderTable(){
-  const tbody = document.querySelector('#logTable tbody');
-  tbody.innerHTML = '';
-
-  const filtered = allLogs.filter(x => (x.group_name || 'ADS') === dashboardState.currentGroup);
-  if(!filtered.length){
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No records for this group</td></tr>';
-    document.getElementById('groupTotals').textContent = `${dashboardState.currentGroup} Total: 0h 00m | ₦ 0`;
-    return;
-  }
-
-  // group by date (with +1hr timezone correction)
-const grouped = {};
-filtered.forEach(r => {
-  if (!r.work_date) return;
-  const key = new Date(new Date(r.work_date).getTime() + (60 * 60 * 1000))
-    .toISOString()
-    .split('T')[0];
-  (grouped[key] ||= []).push(r);
-});
-
-// === ✅ FIXED MONTHLY CALCULATION: true daily-based min/max + cumulative ₦ ===
-
-// === 🧮 TRUE MONTHLY INTELLIGENCE (Local Date-Aware) ===
-
-const monthlyTotals = {};   // ₦ cumulative per worker-owner per month
-const monthlyExtremes = {}; // true min/max minutes per worker-owner per month
-dailyTotals = {};     // holds per-day total minutes (for accurate monthly comparison)
-
-// Step 1 — Aggregate all logs into daily totals (normalize to Lagos time)
-filtered.forEach(r => {
-  if (!r.work_date) return;
-
-  const group = (r.group_name || "ADS").trim();
-  if (group !== dashboardState.currentGroup) return;
-
-  const worker = (r.account_worker || "").trim();
-  const owner = (r.account_owner  || "").trim();
-
-  // normalize to Lagos local date only (remove UTC distortion)
-  const dateObj = new Date(r.work_date);
-  const local = new Date(dateObj.getTime() + (1 * 60 * 60 * 1000)); // adjust to UTC+1
-  const dateKey = local.toISOString().split("T")[0];
-  const monthKey = dateKey.slice(0, 7);
-
-  const comboMonth = `${worker}|${owner}|${monthKey}`;
-  const comboDay = `${worker}|${owner}|${dateKey}`;
-
-  const mins = Number(r.minutes_worked || 0);
-  const earn = Number(r.earnings_naira || 0);
-
-  // sum up daily minutes and monthly ₦
-  dailyTotals[comboDay] = (dailyTotals[comboDay] || 0) + mins;
-  monthlyTotals[comboMonth] = (monthlyTotals[comboMonth] || 0) + earn;
-});
-
-// Step 2 — Derive true min/max across daily totals per month
-Object.keys(dailyTotals).forEach(k => {
-  const [worker, owner, date] = k.split("|");
-  const monthKey = date.slice(0, 7);
-  const comboMonth = `${worker}|${owner}|${monthKey}`;
-  const totalMins = dailyTotals[k];
-
-  if (!monthlyExtremes[comboMonth]) {
-    monthlyExtremes[comboMonth] = { min: totalMins, max: totalMins };
-  } else {
-    monthlyExtremes[comboMonth].min = Math.min(monthlyExtremes[comboMonth].min, totalMins);
-    monthlyExtremes[comboMonth].max = Math.max(monthlyExtremes[comboMonth].max, totalMins);
-  }
-});
-
-// Step 3 — Replace null mins with 0 if no valid data
-for (const key in monthlyExtremes) {
-  if (monthlyExtremes[key].min == null) monthlyExtremes[key].min = 0;
-}
-// ===== DEBUG DIAGNOSTIC MODE =====
-console.log("📊 [DEBUG] DAILY TOTALS per Worker-Date:");
-const dailyTest = {};
-filtered.forEach(r => {
-  const worker = (r.account_worker || '').trim();
-  const owner = (r.account_owner || '').trim();
-  const date = (r.work_date || '').trim();
-  const key = `${worker}|${owner}|${date}`;
-  dailyTest[key] = (dailyTest[key] || 0) + Number(r.minutes_worked || 0);
-});
-console.table(dailyTest);
-
-console.log("📈 [DEBUG] MONTHLY TOTALS (₦):");
-console.table(monthlyTotals);
-
-console.log("📉 [DEBUG] MONTHLY EXTREMES (mins):");
-console.table(monthlyExtremes);
-console.log("==================================");
-
-  let groupTotalMin = 0;
-  let groupTotalEarn = 0;
-
- // === 🧭 SMART MONTH FILTER FOR SHOW-ALL HEADERS (Scoped Safe Version) ===
-{
-  let selectedDate = document.getElementById("dayPicker").value || dashboardState.currentDay;
-  let monthScope = selectedDate ? selectedDate.slice(0, 7) : new Date().toISOString().slice(0, 7);
-  let [yr, mo] = monthScope.split("-").map(Number);
-  let nextM = mo === 12 ? `${yr + 1}-01` : `${yr}-${String(mo + 1).padStart(2, "0")}`;
-
-  var targets = dashboardState.showAllMode
-    ? Object.keys(grouped)
-        .filter(d => d >= `${monthScope}-01` && d < `${nextM}-01`)
-        .sort()
-    : [dashboardState.currentDay || getMostRecentArchivedDate(allLogs)];
-}
-
-  targets.forEach(dateKey => {
-    const recs = grouped[dateKey] || [];
-    if(!recs.length) return;
-
-    // date header only in show-all
-    if(dashboardState.showAllMode){
-      const hr = document.createElement('tr');
-      hr.innerHTML = `<td colspan="10" class="date-header" data-date="${dateKey}">
-        <span>📅 ${new Date(dateKey + "T00:00:00Z").toLocaleDateString('en-US', {timeZone: "Africa/Lagos",day: '2-digit',month: 'long',year: 'numeric'})}</span>
-        <span class="chevron">▼</span></td>`;
-      // toggle this day's rows on header click
-      hr.querySelector('.date-header').onclick = () => toggleDay(dateKey);
-      tbody.appendChild(hr);
-    }
-
-// group records by worker-owner combo (prevents overwriting same names)
-const workers = {};
-
-recs.forEach(r => {
-  const uniqueKey = `${r.account_worker || '(unknown)'}|${r.account_owner || ''}`;
-
-  if (!workers[uniqueKey]) {
-    workers[uniqueKey] = {
-      owner: r.account_owner || '',
-      worker: r.account_worker || '(unknown)',
-      account_type: r.account_type || '',
-      records: []
-    };
-  }
-  workers[uniqueKey].records.push({
-    mins: Number(r.minutes_worked || 0),
-    earn: Number(r.earnings_naira || 0)
-  });
-});
-
-    let dailyMin = 0;
-    let dailyEarn = 0;
-
-  // 🧩 PATCH — Sort workers alphabetically by Owner then Worker before rendering  
-  const sortedWorkers = Object.values(workers).sort((a, b) => {  
-    const ownerCompare = (a.owner || "").localeCompare(b.owner || "");  
-    if (ownerCompare !== 0) return ownerCompare;  
-    return (a.worker || "").localeCompare(b.worker || "");  
-  });  
-    
-// === Monthly-aware row rendering ===
-sortedWorkers.forEach(info => {
-  const minsArr = info.records.map(x => x.mins);
-  const totalMin = minsArr.reduce((a, b) => a + b, 0);
-  const earnTotal = info.records.reduce((a, b) => a + b.earn, 0);
-
-// 🧭 True month-based lookup (binds correct cumulative & extremes)
-const monthKey = dateKey.slice(0, 7);
-const comboKey = `${info.worker.trim()}|${info.owner.trim()}|${monthKey}`;
-
-// Safely pull precomputed data
-const monthTotal = monthlyTotals.hasOwnProperty(comboKey)
-  ? monthlyTotals[comboKey]
-  : earnTotal;
-
-// Extract monthly extremes (default to 0 if missing)
-const extremes = monthlyExtremes.hasOwnProperty(comboKey)
-  ? monthlyExtremes[comboKey]
-  : { min: 0, max: 0 };
-
-// Fix display for zero/minimum edge cases
-const minHrs =
-  typeof extremes.min === "number" && extremes.min >= 0
-    ? extremes.min
-    : 0;
-const maxHrs =
-  typeof extremes.max === "number" && extremes.max >= 0
-    ? extremes.max
-    : 0;
-
-  // Increment group/day totals (for footer and subtotals)
-  dailyMin += totalMin;
-  groupTotalMin += totalMin;
-  dailyEarn += earnTotal;
-  groupTotalEarn += earnTotal;
-
-  // Render row
-  const tr = document.createElement('tr');
-  tr.classList.add('day-section', `day-${dateKey}`);
-  tr.innerHTML = `
-    <td data-label="Owner">${info.owner || ''}</td>
-    <td data-label="Worker" title="Owner: ${info.owner}">
-      ${info.worker ? info.worker.toUpperCase() : ''}
-    </td>
-    <td data-label="Account">${info.account_type || ''}</td>
-    <td data-label="Date">${new Date(dateKey + "T00:00:00Z")
-      .toLocaleDateString('en-US', { timeZone: "Africa/Lagos", day: '2-digit', month: 'short', year: 'numeric' })}</td>
-    <td data-label="Hours">${toHMS(totalMin)}</td>
-    <td data-label="Min Hrs">${toHMS(minHrs)}</td>
-    <td data-label="Max Hrs">${toHMS(maxHrs)}</td>
-    <td data-label="Dec Hrs">${toDecimalH(totalMin)}</td>
-    <td data-label="₦ Today">₦ ${earnTotal}</td>
-    <td data-label="₦ Total">₦ ${monthTotal}</td>`;
-  tbody.appendChild(tr);
-});
-
-    // subtotal only in show-all
-    if(dashboardState.showAllMode){
-      const sub = document.createElement('tr');
-      sub.classList.add('day-section', `day-${dateKey}`);
-      sub.innerHTML = `<td colspan="10" style="text-align:right;font-weight:600;background:#17191b;">
-        Subtotal for ${new Date(dateKey).toLocaleDateString('en-US',{day:'2-digit',month:'short'})}: ${toHMS(dailyMin)} | ₦ ${dailyEarn}</td>`;
-      tbody.appendChild(sub);
+  // 🪄 Capture Mac button clicks
+  document.querySelectorAll('.downloads a').forEach(btn => {
+    if (btn.textContent.includes("macOS")) {
+      btn.addEventListener("click", e => {
+        e.preventDefault(); // stop broken link
+        showToast("🍎 macOS version coming soon!");
+      });
     }
   });
-
-// === ✅ FINAL FIX v4 — True Monthly Totals via allLogs (Lagos-normalized) ===
-const totalsCell = document.getElementById("groupTotals");
-
-// Determine active month (YYYY-MM)
-let activeDate = document.getElementById("dayPicker").value;
-if (!activeDate) activeDate = dashboardState.currentDay || getMostRecentArchivedDate(allLogs);
-const activeMonth = activeDate ? activeDate.slice(0, 7) : null;
-const currentGroup = dashboardState.currentGroup || "ADS";
-
-// Build a ledger per worker-owner-date (Lagos-normalized)
-const ledger = {};
-(allLogs || []).forEach(r => {
-  if (!r.work_date) return;
-  if ((r.group_name || "ADS") !== currentGroup) return;
-
-  // Normalize to Lagos local date (+1h)
-  const dateObj = new Date(r.work_date);
-  const local = new Date(dateObj.getTime() + 60 * 60 * 1000);
-  const d = local.toISOString().split("T")[0];
-  if (d.slice(0, 7) !== activeMonth) return;
-
-  const key = `${(r.account_worker || "").trim()}|${(r.account_owner || "").trim()}|${d}`;
-  if (!ledger[key]) ledger[key] = { mins: 0, earn: 0 };
-  ledger[key].mins += Number(r.minutes_worked || 0);
-  ledger[key].earn += Number(r.earnings_naira || 0);
-});
-
-// Aggregate month totals from the ledger
-let totalMinutes = 0;
-let totalEarnings = 0;
-Object.values(ledger).forEach(v => {
-  totalMinutes += v.mins;
-  totalEarnings += v.earn;
-});
-
-// Format month label (e.g., "October 2025")
-let monthLabel = "N/A";
-if (activeMonth) {
-  const [yr, mo] = activeMonth.split("-");
-  monthLabel = `${new Date(`${yr}-${mo}-01`).toLocaleString("en-US", { month: "long" })} ${yr}`;
-}
-
-// Display footer total
-totalsCell.textContent =
-  `${currentGroup} — ${monthLabel} Total: ${toHMS(totalMinutes)} (≈ ${toDecimalH(totalMinutes)} h) | ₦${totalEarnings}`;
-totalsCell.style.animation = "footerFlash 1.5s ease";
-setTimeout(() => (totalsCell.style.animation = ""), 1600);
-
-
-  // ⚡ Add table pulse feedback
-  const table = document.getElementById("logTable");
-  if (table) {
-    table.style.animation = "tablePulse 0.6s ease";
-    setTimeout(() => table.style.animation = "", 700);
-  }
-
-  totalsCell.style.transition = "box-shadow 1.2s ease, color 1.2s ease";
-  totalsCell.style.boxShadow = "0 0 22px rgba(34, 197, 94, 0.4)";
-  totalsCell.style.color = "#22c55e";
-
-  setTimeout(() => {
-    totalsCell.style.boxShadow = "none";
-    totalsCell.style.color = "";
-  }, 1200);
-
-  // ensure collapsed/expanded state is applied
-  if(!dashboardState.expandedState){
-    document.querySelectorAll('.day-section').forEach(s => s.style.display = 'none');
-    document.querySelectorAll('.date-header').forEach(h => h.classList.add('collapsed'));
-  } else {
-    document.querySelectorAll('.day-section').forEach(s => s.style.display = '');
-    document.querySelectorAll('.date-header').forEach(h => h.classList.remove('collapsed'));
-    // 🧩 PATCH 3 START — Always show rows in single-day mode
-if(!dashboardState.showAllMode){
-  document.querySelectorAll('.day-section').forEach(s => s.style.display = '');
-}
-  }
-
-  // update date input for single-day view (if we returned from show-all)
-  if(!dashboardState.showAllMode){
-    document.getElementById('dayPicker').value = dashboardState.currentDay || "";
-  }
-}
-
-/* ---------- helper: toggle day rows ---------- */
-function toggleDay(dateKey){
-  const rows = document.querySelectorAll(`.day-${dateKey}`);
-  if(!rows.length) return;
-  const hidden = Array.from(rows).every(r => r.style.display === 'none');
-  rows.forEach(r => r.style.display = hidden ? '' : 'none');
-  const header = document.querySelector(`.date-header[data-date="${dateKey}"]`);
-  if(header) header.classList.toggle('collapsed', !hidden);
-}
-
-/* ---------- startup ---------- */
-document.getElementById('toggleAll').style.display = 'none';
-loadData();
-
-let renderLock = false;
-
-function smoothRender(callback) {
-  if (renderLock) return;
-  renderLock = true;
-
-  const table = document.getElementById("logTable");
-  if (!table) {
-    callback();
-    renderLock = false;
-    return;
-  }
-
-  // Step 1️⃣ — Hide instantly (no transition)
-  table.style.opacity = "0";
-  table.style.transition = "none";
-
-  // Step 2️⃣ — Rebuild silently (DOM update)
-  requestAnimationFrame(() => {
-    callback();
-
-    // Step 3️⃣ — Wait one tick for DOM to settle before showing
-    setTimeout(() => {
-      table.style.transition = "opacity 0.4s ease, transform 0.4s ease";
-      table.style.opacity = "1";
-      table.style.transform = "scale(1.002)";
-
-      // Step 4️⃣ — Gentle pulse confirmation
-      table.style.animation = "tablePulse 0.5s ease";
-      setTimeout(() => {
-        table.style.animation = "";
-        table.style.transform = "scale(1)";
-        renderLock = false;
-      }, 600);
-    }, 50);
-  });
-}
-
-// Hook into existing renderTable() call
-const originalRenderTable = renderTable;
-renderTable = function() {
-  smoothRender(() => originalRenderTable());
-};
-
-/* === ROW FADE-IN ANIMATION === */
-const style = document.createElement('style');
-style.textContent = `
-  tr.day-section {
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-  tr.day-section.fade-in {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-document.head.appendChild(style);
-
-// When rendering rows, add fade-in effect smoothly
-const originalAppendChild = Element.prototype.appendChild;
-Element.prototype.appendChild = function(el) {
-  if (el && el.classList && el.classList.contains('day-section')) {
-    requestAnimationFrame(() => {
-      el.classList.add('fade-in');
-    });
-  }
-  return originalAppendChild.call(this, el);
-};
-
-// Totals glow when updated
-const observer = new MutationObserver(() => {
-  const total = document.querySelector("tfoot td");
-  if (total) {
-    total.classList.add("glow");
-    setTimeout(() => total.classList.remove("glow"), 1400);
-  }
-});
-observer.observe(document.getElementById("groupTotals"), { childList: true });
 </script>
+</body>
+</html>

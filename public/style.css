@@ -1,0 +1,150 @@
+/* ============================================================
+   🌌 E-Workers Welcome Hub — Dark Glow Theme
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+:root {
+  --bg-start: #050708;
+  --bg-end: #0d1117;
+  --green: #00ff88;
+  --blue: #00b0ff;
+  --text-main: #dff9f0;
+  --text-sub: #9aa7af;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top, var(--bg-start), var(--bg-end));
+  font-family: "Inter", sans-serif;
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#hub {
+  text-align: center;
+  max-width: 700px;
+  padding: 30px;
+}
+
+.logo-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.logo-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0,255,100,0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(10px);
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.logo-text {
+  position: relative;
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-shadow: 0 0 20px rgba(0,255,136,0.5);
+  letter-spacing: 1px;
+}
+
+.logo-e {
+  color: var(--green);
+  text-shadow: 0 0 15px rgba(0,255,136,0.8);
+}
+
+.tagline {
+  color: var(--text-sub);
+  font-size: 0.95rem;
+  margin-top: 0;
+}
+
+.welcome-title {
+  font-size: 1.7rem;
+  margin: 30px 0 10px;
+  color: var(--text-main);
+}
+
+.highlight {
+  color: var(--green);
+  text-shadow: 0 0 8px rgba(0,255,136,0.7);
+}
+
+.intro {
+  color: var(--text-sub);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.hub-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 35px;
+}
+
+.hub-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.4px;
+  transition: all 0.25s ease;
+  width: 240px;
+  text-align: center;
+}
+
+.hub-btn.primary {
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  color: #000;
+  box-shadow: 0 0 15px rgba(0,255,136,0.4);
+}
+
+.hub-btn.primary:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 22px rgba(0,255,136,0.6);
+}
+
+.hub-btn.secondary {
+  border: 2px solid var(--blue);
+  color: var(--blue);
+}
+
+.hub-btn.secondary:hover {
+  background: var(--blue);
+  color: #000;
+  transform: scale(1.04);
+}
+
+.status {
+  margin-top: 20px;
+  font-size: 0.95rem;
+  color: var(--text-sub);
+}
+
+.status-online {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.hub-footer {
+  margin-top: 60px;
+  color: var(--text-sub);
+  font-size: 0.9rem;
+}
+
+@keyframes glowPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
