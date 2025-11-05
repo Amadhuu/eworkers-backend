@@ -42,30 +42,37 @@ app.post("/api/progress/send", async (req, res) => {
     const { group, owner, worker, cycle, date, minutes = 0, hours = 0 } = req.body;
     if (!worker || !date) return res.status(400).json({ message: "Missing worker or date" });
 
-    const mins = Math.round(minutes);
+    const mins = parseFloat(minutes.toFixed(2)); // ✅ Preserve fractional precision
     const earnings = Math.round((minutes / 60) * 2000);
+    const source_type = req.body.source_type || "floater"; // ✅ Fix source type
 
-    await pool.query(`
+    await pool.query(
+      `
       INSERT INTO logs (
         group_name, account_owner, account_worker, account_type,
-        date_worked, minutes_worked, earnings_naira
+        date_worked, minutes_worked, earnings_naira, source_type
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT ON CONSTRAINT logs_unique_record
       DO UPDATE SET
         minutes_worked = EXCLUDED.minutes_worked,
         earnings_naira = EXCLUDED.earnings_naira,
-        account_type   = EXCLUDED.account_type;
-    `, [group || "ADS", owner || "", worker || "", cycle || "us", date, mins, earnings]);
+        account_type   = EXCLUDED.account_type,
+        source_type    = EXCLUDED.source_type;
+      `,
+      [group || "ADS", owner || "", worker || "", cycle || "us", date, mins, earnings, source_type]
+    );
 
-    console.log("✅ Progress stored (or updated):", { worker, date, minutes, earnings });
-    res.json({ message: "Progress saved ✅", stored: { worker, date, minutes, earnings } });
+    console.log(
+      `\x1b[32m📦 [${group || "—"} | ${owner || "—"} | ${worker || "—"} | ${mins}m | ${source_type} | ${date}] ✅\x1b[0m`
+    );
+
+    res.json({ message: "Progress stored successfully ✅", data: { worker, date, mins, earnings, source_type } });
   } catch (err) {
     console.error("❌ Error saving Floater progress:", err);
     res.status(500).json({ message: "Error saving progress", details: err.message });
   }
 });
-
 
 // ================================================================
 // 🟩 MANUAL ARCHIVE TRIGGER (from Floater payload) — Duplicate-Proof
@@ -75,39 +82,47 @@ app.post("/api/archive/run", async (req, res) => {
     const { group, owner, worker, cycle, date, minutes = 0 } = req.body;
     if (!worker || !date) return res.status(400).json({ message: "Missing worker or date" });
 
-    console.log("🗄️ Archive trigger received:", { worker, owner, date, minutes, cycle, group });
-
     const earnings = Math.round((minutes / 60) * 2000);
+    const source_type = req.body.source_type || "backend"; // ✅ Set fallback
 
-    await pool.query(`
+    await pool.query(
+      `
       INSERT INTO logs (
         group_name, account_owner, account_worker, account_type,
-        date_worked, minutes_worked, earnings_naira
+        date_worked, minutes_worked, earnings_naira, source_type
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT ON CONSTRAINT logs_unique_record
       DO UPDATE SET
         minutes_worked = EXCLUDED.minutes_worked,
         earnings_naira = EXCLUDED.earnings_naira,
-        account_type   = EXCLUDED.account_type;
-    `, [group || "ADS", owner || "", worker || "", "ARCHIVE", date, minutes, earnings]);
+        account_type   = EXCLUDED.account_type,
+        source_type    = EXCLUDED.source_type;
+      `,
+      [group || "ADS", owner || "", worker || "", "ARCHIVE", date, minutes, earnings, source_type]
+    );
 
-        // ✅ Register or update this worker in the active registry
-    await pool.query(`
+    // ✅ Register or update active registry
+    await pool.query(
+      `
       INSERT INTO active_registry (group_name, account_owner, account_worker, last_active)
       VALUES ($1, $2, $3, NOW())
       ON CONFLICT (group_name, account_owner, account_worker)
       DO UPDATE SET last_active = NOW();
-    `, [group || "ADS", owner || "", worker || ""]);
+      `,
+      [group || "ADS", owner || "", worker || ""]
+    );
 
-
-    console.log(`✅ Archive saved or updated for ${worker || "N/A"} (${date})`);
-    res.json({ message: "Archive completed ✅", saved: { worker, date, minutes } });
+    console.log(
+      `\x1b[36m📦 [${group || "—"} | ${owner || "—"} | ${worker || "—"} | ${minutes}m | ${source_type} | ${date}] ✅\x1b[0m`
+    );
+    res.json({ message: "Archive completed ✅", saved: { worker, date, minutes, source_type } });
   } catch (err) {
     console.error("❌ Archive error:", err);
     res.status(500).json({ message: "Error saving archive", details: err.message });
   }
 });
+
 // ================================================================
 // 🧩 Helper — Get last known account_type for a worker
 // ================================================================
@@ -230,7 +245,6 @@ cron.schedule(
   },  
   { timezone: "Africa/Lagos" }  
 );  
-
 
 // ================================================================
 // 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
