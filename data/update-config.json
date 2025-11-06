@@ -1,0 +1,12 @@
+{
+  "stable": {
+    "version": "v1.1.0",
+    "url": "https://github.com/Amadhuu/floater/releases/download/v1.1.0/Floater-v1.1.0.exe",
+    "notes": "Public stable build – verified with SmartCron + SmartFlip + Registry Sync"
+  },
+  "prep": {
+    "version": "v1.1.0-pre",
+    "url": "https://github.com/Amadhuu/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
+    "notes": "Developer prep build – includes hybrid update & patch-note system"
+  }
+}

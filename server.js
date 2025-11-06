@@ -13,6 +13,47 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/downloads", express.static(path.join(__dirname,"public", "downloads")));
 
+// ===============================================================
+// 🧩 Dynamic Update Info System (Hybrid Auto-Update Backend)
+// ===============================================================
+
+const fs = require("fs");
+const configPath = path.join(process.cwd(), "data", "update-config.json");
+
+// --- GET: serve current update info ---
+app.get("/api/update/check", (req, res) => {
+  try {
+    const channel = (req.query.channel || "stable").toLowerCase();
+    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (!cfg[channel]) return res.status(404).json({ error: "Channel not found" });
+    res.json(cfg[channel]);
+  } catch (err) {
+    console.error("⚠️ /api/update/check error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// --- POST: admin-only update of version info ---
+app.post("/api/update/config", (req, res) => {
+  try {
+    const { token, channel, version, url, notes } = req.body;
+    if (token !== process.env.ADMIN_TOKEN) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    cfg[channel] = { version, url, notes };
+    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+
+    console.log(`✅ Update config modified for ${channel}:`, version);
+    res.json({ ok: true, updated: cfg[channel] });
+  } catch (err) {
+    console.error("⚠️ /api/update/config error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
 console.log("✅ Connected to database:", process.env.DATABASE_URL);
 
 // --- Health check ---
@@ -424,32 +465,6 @@ app.get("/dashboard", (req, res) => {
 
 app.get("/dashboard/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
-});
-
-// ⚡ HYBRID AUTO-UPDATE CHECK ROUTE (GitHub + Backend Control)
-app.get("/api/update/check", (req, res) => {
-  const channel = (req.query.channel || "stable").toLowerCase();
-
-  const builds = {
-    prep: {
-      version: "v1.1.0-pre",
-      notes: "⚙️ Dev build – Smart Flip verified, Auto-Reset visual sync active.",
-      url: "https://github.com/EworkersHQ/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
-      checksum: "sha256-prep-placeholder-123abc",
-      stable: false,
-      release_date: "2025-11-06T12:00:00Z"
-    },
-    stable: {
-      version: "v1.0.0-stable",
-      notes: "🛡️ Official stable release – verified production build.",
-      url: "https://github.com/EworkersHQ/floater/releases/download/v1.0.0-stable/Floater-v1.0.0-stable.exe",
-      checksum: "sha256-stable-placeholder-456def",
-      stable: true,
-      release_date: "2025-10-31T09:00:00Z"
-    }
-  };
-
-  res.json(builds[channel] || builds.stable);
 });
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
