@@ -252,10 +252,10 @@ cron.schedule(
 // ================================================================
 let lastArchivePing = { status: "IDLE", date: null }; 
 
-function resetPingStatus(delayMs = 5 * 60 * 1000) { // reset after 5 min
+function resetPingStatus(delayMs = 15 * 60 * 1000) { // keep active for 15 minutes
   setTimeout(() => {
     lastArchivePing = { status: "IDLE", date: null };
-    console.log("🔁 Ping status reset to IDLE");
+    console.log("🔁 Ping status reset to IDLE (after 15 mins)");
   }, delayMs);
 }
 
@@ -425,5 +425,21 @@ app.get("/dashboard", (req, res) => {
 app.get("/dashboard/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 });
+
+// ============================================================
+// ⚙️ HYBRID AUTO-UPDATE CHECK ROUTE (GitHub + Backend Control)
+// ============================================================
+app.get("/api/update/check", (req, res) => {
+  // Example response for testing inside v1.1-prep
+  res.json({
+    version: "1.1.0-pre",                   // current dev build
+    notes: "🧩 Smart Flip verified + Auto-Reset visual sync.",
+    url: "https://github.com/EworkersHQ/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
+    checksum: "sha256-placeholder-123abc", // optional integrity hash
+    stable: false,                         // prep flag (not for production)
+    release_date: "2025-11-06T12:00:00Z"
+  });
+});
+
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
