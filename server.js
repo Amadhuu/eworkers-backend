@@ -426,20 +426,30 @@ app.get("/dashboard/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 });
 
-// ============================================================
-// ⚙️ HYBRID AUTO-UPDATE CHECK ROUTE (GitHub + Backend Control)
-// ============================================================
+// ⚡ HYBRID AUTO-UPDATE CHECK ROUTE (GitHub + Backend Control)
 app.get("/api/update/check", (req, res) => {
-  // Example response for testing inside v1.1-prep
-  res.json({
-    version: "1.1.0-pre",                   // current dev build
-    notes: "🧩 Smart Flip verified + Auto-Reset visual sync.",
-    url: "https://github.com/EworkersHQ/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
-    checksum: "sha256-placeholder-123abc", // optional integrity hash
-    stable: false,                         // prep flag (not for production)
-    release_date: "2025-11-06T12:00:00Z"
-  });
-});
+  const channel = (req.query.channel || "stable").toLowerCase();
 
+  const builds = {
+    prep: {
+      version: "v1.1.0-pre",
+      notes: "⚙️ Dev build – Smart Flip verified, Auto-Reset visual sync active.",
+      url: "https://github.com/EworkersHQ/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
+      checksum: "sha256-prep-placeholder-123abc",
+      stable: false,
+      release_date: "2025-11-06T12:00:00Z"
+    },
+    stable: {
+      version: "v1.0.0-stable",
+      notes: "🛡️ Official stable release – verified production build.",
+      url: "https://github.com/EworkersHQ/floater/releases/download/v1.0.0-stable/Floater-v1.0.0-stable.exe",
+      checksum: "sha256-stable-placeholder-456def",
+      stable: true,
+      release_date: "2025-10-31T09:00:00Z"
+    }
+  };
+
+  res.json(builds[channel] || builds.stable);
+});
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
