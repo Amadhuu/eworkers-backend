@@ -10,7 +10,8 @@ const cron = require("node-cron");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+// --- Health check ---
+app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
 app.use("/downloads", express.static(path.join(__dirname,"public", "downloads")));
 
 // ===============================================================
@@ -55,8 +56,7 @@ app.post("/api/update/config", (req, res) => {
 
 console.log("✅ Connected to database:", process.env.DATABASE_URL);
 
-// --- Health check ---
-app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
+app.use(express.static(path.join(__dirname, "public")));
 
 // --- Fetch logs for Dashboard ---
 app.get("/api/logs", async (req, res) => {
