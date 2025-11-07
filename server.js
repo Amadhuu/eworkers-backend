@@ -10,8 +10,7 @@ const cron = require("node-cron");
 const app = express();
 app.use(cors());
 app.use(express.json());
-// --- Health check ---
-app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
+app.use(express.static(path.join(__dirname, "public")));
 app.use("/downloads", express.static(path.join(__dirname,"public", "downloads")));
 
 // ===============================================================
@@ -56,7 +55,8 @@ app.post("/api/update/config", (req, res) => {
 
 console.log("✅ Connected to database:", process.env.DATABASE_URL);
 
-app.use(express.static(path.join(__dirname, "public")));
+// --- Health check ---
+app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
 
 // --- Fetch logs for Dashboard ---
 app.get("/api/logs", async (req, res) => {
@@ -503,32 +503,5 @@ app.get("/dashboard", (req, res) => {
 app.get("/dashboard/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 }); 
-
-// ===============================================================
-// 🩺 HEALTH + ROOT ROUTES (Render-safe fallback)
-// ===============================================================
-app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
-app.get("/health", (req, res) =>
-  res.json({ ok: true, time: new Date(), message: "Backend healthy ✅" })
-);
-
-// ===============================================================
-// 🚦 FINAL FALLBACK — Prevents Render "Not Found" issues
-// ===============================================================
-app.use((req, res) => {
-  res.status(200).send("E-Workers backend running 👍 (Render fallback)");
-});
-
-// === 🔍 CRON STATUS DEBUG BEACON ===
-console.log("🛰 Registering /api/cron/status route...");
-
-app.get("/api/cron/status", (req, res) => {
-  console.log("🛰 /api/cron/status route HIT!");
-  res.json({
-    ok: true,
-    time: new Date().toISOString(),
-    message: "CRON STATUS ONLINE ✅"
-  });
-});
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
