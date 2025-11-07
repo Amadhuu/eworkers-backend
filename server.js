@@ -53,7 +53,6 @@ app.post("/api/update/config", (req, res) => {
   }
 });
 
-
 console.log("✅ Connected to database:", process.env.DATABASE_URL);
 
 // --- Health check ---
@@ -195,98 +194,136 @@ async function getLastKnownAccountType(worker, owner, group) {
   }
 }  
   
-
-// ================================================================  
-// 🧠 SMART CRON JOB — Auto-Archive Only Active Floater Workers (Diagnostic Enhanced)  
-// ================================================================  
+// ================================================================
+// 🧠 SMART CRON JOB — Auto-Archive Only Active Floater Workers (Hardened Phase 4)
+// ================================================================
 const axios = require("axios");
-cron.schedule(  
-  "55 7 * * *",  
-  async () => {  
-    // 🧭 SmartCRON cycle alignment — use previous day's date (8AM–8AM cycle)
+
+cron.schedule(
+  "55 7 * * *",
+  async () => {
     const now = new Date();
-    // Shift back 1 day to represent the completed workday
-    now.setDate(now.getDate() - 1);
+    now.setDate(now.getDate() - 1); // completed workday
     const today = now.toISOString().split("T")[0];
-    console.log("📅 SMART CRON aligned workday →", today);  
-    console.log("🧭 SMART CRON started → checking active_registry for active workers...");  
-    console.log("🕗 SMART CRON: Starting daily auto-archive at 07:55 AM WAT →", today);  
+    console.log("📅 SMART CRON → aligned workday:", today);
 
-    try {  
-      // STEP 1: Pull only active Floater users (worked within last 7 days)  
-      const activeWorkers = await pool.query(`  
-        SELECT group_name, account_owner, account_worker  
-        FROM active_registry  
-        WHERE last_active >= NOW() - INTERVAL '7 days'  
-      `);  
+    try {
+      // STEP 1 — fetch active workers
+      const activeWorkers = await pool.query(`
+        SELECT group_name, account_owner, account_worker
+        FROM active_registry
+        WHERE last_active >= NOW() - INTERVAL '7 days'
+      `);
+      console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
 
-      console.log(`🧮 SMART CRON found ${activeWorkers.rowCount} active workers to process.`);  
+      if (activeWorkers.rowCount === 0) {
+        console.log("⚠️ No active workers — nothing to archive today");
+        updateCronHealth(today, 0, true);
+        return;
+      }
 
-      if (activeWorkers.rowCount === 0) {  
-        console.log("⚠️ SMART CRON: No active workers found — nothing to archive today.");  
-        updateCronHealth(today, 0, true);  
-        return;  
-      }  
+      let archived = 0, skipped = 0;
+      const processed = new Set();
 
-      let inserted = 0, skipped = 0;  
+      for (const row of activeWorkers.rows) {
+        const { group_name, account_owner, account_worker } = row;
+        const key = `${group_name}|${account_owner}|${account_worker}`;
+        if (processed.has(key)) continue;
+        processed.add(key);
 
-      // STEP 2: Loop through each active worker and archive safely  
-      for (const { group_name, account_owner, account_worker } of activeWorkers.rows) {  
-        const exists = await pool.query(  
-          `SELECT 1 FROM logs  
-           WHERE account_worker=$1 AND account_owner=$2  
-             AND group_name=$3 AND date_worked=$4`,  
-          [account_worker, account_owner, group_name, today]  
-        );  
+        // 🧩 skip empty or invalid records
+        if (!group_name || !account_owner || !account_worker) {
+          console.warn("⚠️ Skipped invalid registry row:", row);
+          skipped++;
+          continue;
+        }
 
-        if (exists.rowCount > 0) {  
-          skipped++;  
-          console.log(`⏩ SMART CRON skipped ${account_worker} (${group_name}) — already logged today.`);  
-          continue;  
-        }  
+        try {
+          // check for sent record
+          const sent = await pool.query(
+            `SELECT 1 FROM logs
+             WHERE account_worker=$1 AND account_owner=$2 AND group_name=$3 AND date_worked=$4
+             AND source_type='floater'`,
+            [account_worker, account_owner, group_name, today]
+          );
 
-        // 🧠 Step: Fetch last known account type before inserting
-        const lastType = await getLastKnownAccountType(account_worker, account_owner, group_name);
-        const effectiveType = lastType || "ARCHIVE";
+          if (sent.rowCount === 0) {
+            skipped++;
+            console.log(`⏭️ ${account_worker} (${group_name}) — no sent record, skipped`);
+            continue;
+          }
 
-        await pool.query(`
-          INSERT INTO logs (
-            group_name, account_owner, account_worker, account_type,
-            date_worked, minutes_worked, earnings_naira, source_type
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        `, [group_name, account_owner, account_worker, effectiveType, today, 0, 0, "cron"]);
+          // fetch last known account type and update
+          const lastType = await getLastKnownAccountType(account_worker, account_owner, group_name);
+          const effectiveType = lastType || "ARCHIVE";
 
-        console.log(`✅ SMART CRON inserted 0-min record for ${account_worker} (${group_name}) [type=${effectiveType}]`);
+          await pool.query(
+            `UPDATE logs
+             SET account_type=$1, source_type='cron'
+             WHERE account_worker=$2 AND account_owner=$3 AND group_name=$4 AND date_worked=$5`,
+            [effectiveType, account_worker, account_owner, group_name, today]
+          );
 
-        inserted++;    
-      }  
+          archived++;
+          console.log(`✅ Archived ${account_worker} (${group_name}) [type=${effectiveType}]`);
 
-      // STEP 3: Summary and update CRON health  
-      console.log(`🏁 SMART CRON finished → total processed: ${activeWorkers.rowCount}, new inserts: ${inserted}, skipped: ${skipped}`);  
-      updateCronHealth(today, inserted, true);  
+        } catch (innerErr) {
+          console.error(`❌ Archive failed for ${account_worker}:`, innerErr.message);
+          skipped++;
+          continue;
+        }
+      }
 
-      // STEP 4: PING Floater (optional, for local app sync)  
-      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };  
-      console.log("📡 SMART CRON ping status updated for Floater:", lastArchivePing);  
+      console.log(
+        `🏁 SMART CRON Summary → ${today} | Archived:${archived} | Skipped:${skipped}`
+      );
+      updateCronHealth(today, archived, true);
 
-      try {  
-        await axios.post("http://127.0.0.1:3000/api/ping/archive", {  
-          status: "ARCHIVE_COMPLETE",  
-          date: today,  
-        });  
-        console.log("📡 SMART CRON ping-back sent successfully to Floater.");  
-        resetPingStatus();  
-      } catch (pingErr) {  
-        console.warn("⚠️ SMART CRON could not reach Floater for ping-back:", pingErr.message);  
-      }  
+      // STEP 2 — Ping Floater safely
+      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
+      let pingSent = false;
 
-    } catch (err) {  
-      console.error("❌ SMART CRON error:", err.message);  
-      updateCronHealth(today, 0, false, err.message);  
-    }  
-  },  
-  { timezone: "Africa/Lagos" }  
-);  
+      try {
+        const resp = await axios.post("http://127.0.0.1:3000/api/ping/archive", {
+          status: "ARCHIVE_COMPLETE",
+          date: today,
+        });
+        if (resp.status >= 200 && resp.status < 300) {
+          pingSent = true;
+          console.log("📡 Ping-back → Floater OK");
+          resetPingStatus();
+        } else {
+          console.warn("⚠️ Ping-back non-200:", resp.status);
+        }
+      } catch (pingErr) {
+        if (pingErr.response?.status === 400) {
+          console.warn("⚠️ Ping-back 400 ignored (Floater not ready)");
+        } else {
+          console.warn("⚠️ Ping-back failed:", pingErr.message);
+        }
+        // optional retry after 60 s
+        setTimeout(async () => {
+          try {
+            await axios.post("http://127.0.0.1:3000/api/ping/archive", {
+              status: "ARCHIVE_COMPLETE",
+              date: today,
+            });
+            console.log("📡 Retry ping → success");
+          } catch (e) {
+            console.warn("⚠️ Retry ping failed:", e.message);
+          }
+        }, 60 * 1000);
+      }
+
+    } catch (err) {
+      console.error("❌ SMART CRON fatal error:", err.message);
+      updateCronHealth(today, 0, false, err.message);
+    } finally {
+      console.log("🧭 SMART CRON finished gracefully (no unhandled rejections)");
+    }
+  },
+  { timezone: "Africa/Lagos" }
+);
 
 // ================================================================
 // 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
