@@ -519,4 +519,16 @@ app.use((req, res) => {
   res.status(200).send("E-Workers backend running 👍 (Render fallback)");
 });
 
+// === 🔍 CRON STATUS DEBUG BEACON ===
+console.log("🛰 Registering /api/cron/status route...");
+
+app.get("/api/cron/status", (req, res) => {
+  console.log("🛰 /api/cron/status route HIT!");
+  res.json({
+    ok: true,
+    time: new Date().toISOString(),
+    message: "CRON STATUS ONLINE ✅"
+  });
+});
+
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
