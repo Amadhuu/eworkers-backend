@@ -279,42 +279,42 @@ cron.schedule(
       );
       updateCronHealth(today, archived, true);
 
-      // STEP 2 — Ping Floater safely
-      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
-      let pingSent = false;
+    // STEP 2 — Ping Floater safely (simplified, no spam)
+    lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
 
-      try {
-        const resp = await axios.post("http://127.0.0.1:3000/api/ping/archive", {
-          status: "ARCHIVE_COMPLETE",
-          date: today,
-        });
-        if (resp.status >= 200 && resp.status < 300) {
-          pingSent = true;
-          console.log("📡 Ping-back → Floater OK");
-          resetPingStatus();
-        } else {
-          console.warn("⚠️ Ping-back non-200:", resp.status);
-        }
-      } catch (pingErr) {
-        if (pingErr.response?.status === 400) {
-          console.warn("⚠️ Ping-back 400 ignored (Floater not ready)");
-        } else {
-          console.warn("⚠️ Ping-back failed:", pingErr.message);
-        }
-        // optional retry after 60 s
-        setTimeout(async () => {
-          try {
-            await axios.post("http://127.0.0.1:3000/api/ping/archive", {
-              status: "ARCHIVE_COMPLETE",
-              date: today,
-            });
-            console.log("📡 Retry ping → success");
-          } catch (e) {
-            console.warn("⚠️ Retry ping failed:", e.message);
-          }
-        }, 60 * 1000);
+    try {
+      const resp = await axios.post("http://127.0.0.1:3000/api/ping/archive", {
+        status: "ARCHIVE_COMPLETE",
+        date: today,
+      });
+
+      if (resp.status >= 200 && resp.status < 300) {
+        console.log("📡 Ping-back → Floater OK");
+        resetPingStatus();
+      } else {
+        console.warn("⚠️ Ping-back non-200:", resp.status);
       }
-
+    } catch (pingErr) {
+      if (pingErr.response?.status === 400) {
+        console.warn("⚠️ Ping-back 400 ignored (Floater not ready)");
+      } else {
+        console.warn("⚠️ Ping-back failed:", pingErr.message);
+      }
+      
+      // retry once after 60s (fallback only)
+      setTimeout(async () => {
+        try {
+          await axios.post("http://127.0.0.1:3000/api/ping/archive", {
+            status: "ARCHIVE_COMPLETE",
+            date: today,
+          });
+          console.log("📡 Retry ping → success");
+          resetPingStatus();
+        } catch (retryErr) {
+          console.warn("⚠️ Retry ping failed:", retryErr.message);
+        }
+      }, 60 * 1000);
+    }
     } catch (err) {
       console.error("❌ SMART CRON fatal error:", err.message);
       updateCronHealth(today, 0, false, err.message);
@@ -337,7 +337,7 @@ function resetPingStatus(delayMs = 15 * 60 * 1000) { // keep active for 15 minut
   }, delayMs);
 }
 
-// Whenever CRON finishes, update this variable (we’ll patch below)
+// Whenever CRON finishes, update this variable 
 app.get("/api/ping/archive-status", (req, res) => {
   res.json(lastArchivePing);
 }); 
