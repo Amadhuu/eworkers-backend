@@ -502,6 +502,21 @@ app.get("/dashboard", (req, res) => {
 
 app.get("/dashboard/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
+}); 
+
+// ===============================================================
+// 🩺 HEALTH + ROOT ROUTES (Render-safe fallback)
+// ===============================================================
+app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
+app.get("/health", (req, res) =>
+  res.json({ ok: true, time: new Date(), message: "Backend healthy ✅" })
+);
+
+// ===============================================================
+// 🚦 FINAL FALLBACK — Prevents Render "Not Found" issues
+// ===============================================================
+app.use((req, res) => {
+  res.status(200).send("E-Workers backend running 👍 (Render fallback)");
 });
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
