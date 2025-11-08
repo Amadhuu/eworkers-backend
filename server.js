@@ -218,13 +218,16 @@ cron.schedule(
     console.log("📅 SMART CRON → aligned workday:", today);
 
     try {
-      // STEP 1 — fetch active workers
+      // STEP 1 — fetch only valid active workers (no empty ghosts)
       const activeWorkers = await pool.query(`
         SELECT group_name, account_owner, account_worker
         FROM active_registry
         WHERE last_active >= NOW() - INTERVAL '7 days'
+          AND TRIM(COALESCE(account_worker, '')) <> ''
+          AND TRIM(COALESCE(account_owner, '')) <> ''
+          AND TRIM(COALESCE(group_name, '')) <> ''
       `);
-      console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
+      console.log(`🧮 Found ${activeWorkers.rowCount} valid active workers`);
 
       if (activeWorkers.rowCount === 0) {
         console.log("⚠️ No active workers — nothing to archive today");
