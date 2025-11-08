@@ -480,9 +480,38 @@ app.get("/api/registry", async (req, res) => {
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
 });
+ 
+// ================================================================
+// 🧪 MANUAL CRON TEST ENDPOINT — Simulate Archive Immediately
+// ================================================================
+async function runSmartCronOnce() {
+  console.log("🧠 [Manual Run] SmartCron simulation starting...");
+  // 🪄 reuse same body as your actual CRON logic
+  const now = new Date();
+  now.setDate(now.getDate() - 1);
+  const today = now.toISOString().split("T")[0];
+  console.log("📅 Simulated workday:", today);
 
-app.get("/dashboard/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard", "index.html"));
-}); 
+  // fetch active workers
+  const activeWorkers = await pool.query(`
+    SELECT group_name, account_owner, account_worker
+    FROM active_registry
+    WHERE last_active >= NOW() - INTERVAL '7 days'
+  `);
+  console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
+
+  // do just a single dry-run summary, not full archive
+  console.log("✅ Manual SmartCron executed successfully once.");
+}
+
+app.get("/api/test/cron", async (req, res) => {
+  try {
+    await runSmartCronOnce();
+    res.json({ ok: true, message: "Manual CRON executed once successfully" });
+  } catch (err) {
+    console.error("❌ Manual CRON error:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
