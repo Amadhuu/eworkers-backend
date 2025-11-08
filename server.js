@@ -195,9 +195,11 @@ async function getLastKnownAccountType(worker, owner, group) {
 }  
   
 // ================================================================
-// 🧠 SMART CRON JOB — Auto-Archive Only Active Floater Workers (Hardened Phase 4)
+// 🧠 SMART CRON JOB — Flood-Proof, Single-Run, Silent Ping
 // ================================================================
 const axios = require("axios");
+
+let lastCronExecution = null; // ✅ guard variable
 
 cron.schedule(
   "55 7 * * *",
@@ -205,6 +207,14 @@ cron.schedule(
     const now = new Date();
     now.setDate(now.getDate() - 1); // completed workday
     const today = now.toISOString().split("T")[0];
+
+    // ✅ Skip duplicate runs within same day
+    if (lastCronExecution === today) {
+      console.log("⏭️ CRON already executed today — skipping duplicate run.");
+      return;
+    }
+    lastCronExecution = today;
+
     console.log("📅 SMART CRON → aligned workday:", today);
 
     try {
@@ -266,7 +276,6 @@ cron.schedule(
 
           archived++;
           console.log(`✅ Archived ${account_worker} (${group_name}) [type=${effectiveType}]`);
-
         } catch (innerErr) {
           console.error(`❌ Archive failed for ${account_worker}:`, innerErr.message);
           skipped++;
@@ -279,42 +288,13 @@ cron.schedule(
       );
       updateCronHealth(today, archived, true);
 
-    // STEP 2 — Ping Floater safely (simplified, no spam)
-    lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
+      // ✅ STEP 2 — Silent ping record for Floater (no retry flood)
+      lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
+      console.log("📡 Archive ping prepared silently (no outgoing request)");
 
-    try {
-      const resp = await axios.post("http://127.0.0.1:3000/api/ping/archive", {
-        status: "ARCHIVE_COMPLETE",
-        date: today,
-      });
+      // reset status after 15 minutes (handled by resetPingStatus)
+      resetPingStatus();
 
-      if (resp.status >= 200 && resp.status < 300) {
-        console.log("📡 Ping-back → Floater OK");
-        resetPingStatus();
-      } else {
-        console.warn("⚠️ Ping-back non-200:", resp.status);
-      }
-    } catch (pingErr) {
-      if (pingErr.response?.status === 400) {
-        console.warn("⚠️ Ping-back 400 ignored (Floater not ready)");
-      } else {
-        console.warn("⚠️ Ping-back failed:", pingErr.message);
-      }
-      
-      // retry once after 60s (fallback only)
-      setTimeout(async () => {
-        try {
-          await axios.post("http://127.0.0.1:3000/api/ping/archive", {
-            status: "ARCHIVE_COMPLETE",
-            date: today,
-          });
-          console.log("📡 Retry ping → success");
-          resetPingStatus();
-        } catch (retryErr) {
-          console.warn("⚠️ Retry ping failed:", retryErr.message);
-        }
-      }, 60 * 1000);
-    }
     } catch (err) {
       console.error("❌ SMART CRON fatal error:", err.message);
       updateCronHealth(today, 0, false, err.message);
@@ -324,6 +304,7 @@ cron.schedule(
   },
   { timezone: "Africa/Lagos" }
 );
+
 
 // ================================================================
 // 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
