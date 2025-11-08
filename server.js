@@ -512,11 +512,11 @@ if (process.env.ENABLE_MANUAL_CRON === "true") {
       const floaterURL = process.env.FLOATER_PING_URL || "";
       if (floaterURL) {
         try {
-          const resp = await axios.post(`${floaterURL}/api/ping/archive`, {
-            status: "ARCHIVE_COMPLETE",
-            date: today,
-          });
-
+          const resp = await axios.post(`${floaterURL}/api/ping/archive`,
+          { status: "ARCHIVE_COMPLETE", date: today },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        
           if (resp.status >= 200 && resp.status < 300)
             console.log("📡 [Manual Run] Ping-back to Floater OK ✅");
           else console.warn("⚠️ Ping-back returned non-200:", resp.status);
