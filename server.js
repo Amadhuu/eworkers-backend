@@ -195,17 +195,22 @@ async function getLastKnownAccountType(worker, owner, group) {
 }  
   
 // ================================================================
-// 🧠 SMART CRON JOB — Flood-Proof, Single-Run, Silent Ping
+// 🧠 SMART CRON JOB — Flood-Proof, Single-Run, Silent Ping (TEMP TEST MODE)
 // ================================================================
 const axios = require("axios");
 
-let lastCronExecution = null; // ✅ guard variable
+let lastCronExecution = null; // ✅ prevents same-day reruns
 
-cron.schedule(
-  "55 7 * * *",
+// 🧪 TEMP TEST CRON — runs once every minute for 5 minutes, then stops automatically
+let testRunCount = 0;
+const testCron = cron.schedule(
+  "*/1 * * * *", // every 1 minute
   async () => {
+    testRunCount++;
+    console.log(`🧪 [Test SmartCron] Run #${testRunCount} starting at ${new Date().toISOString()}`);
+
     const now = new Date();
-    now.setDate(now.getDate() - 1); // completed workday
+    now.setDate(now.getDate() - 1); // simulate completed workday
     const today = now.toISOString().split("T")[0];
 
     // ✅ Skip duplicate runs within same day
@@ -288,11 +293,9 @@ cron.schedule(
       );
       updateCronHealth(today, archived, true);
 
-      // ✅ STEP 2 — Silent ping record for Floater (no retry flood)
+      // ✅ Silent ping (no outgoing HTTP flood)
       lastArchivePing = { status: "ARCHIVE_COMPLETE", date: today };
       console.log("📡 Archive ping prepared silently (no outgoing request)");
-
-      // reset status after 15 minutes (handled by resetPingStatus)
       resetPingStatus();
 
     } catch (err) {
@@ -301,10 +304,15 @@ cron.schedule(
     } finally {
       console.log("🧭 SMART CRON finished gracefully (no unhandled rejections)");
     }
+
+    // 🛑 Auto-stop after 5 runs
+    if (testRunCount >= 5) {
+      console.log("🛑 Test CRON completed 5 runs — stopping automatically.");
+      testCron.stop();
+    }
   },
   { timezone: "Africa/Lagos" }
 );
-
 
 // ================================================================
 // 🟩 PING STATUS ROUTE — Floater checks here for CRON completion
@@ -516,7 +524,7 @@ if (process.env.ENABLE_MANUAL_CRON === "true") {
           { status: "ARCHIVE_COMPLETE", date: today },
           { headers: { "Content-Type": "application/json" } }
         );
-        
+
           if (resp.status >= 200 && resp.status < 300)
             console.log("📡 [Manual Run] Ping-back to Floater OK ✅");
           else console.warn("⚠️ Ping-back returned non-200:", resp.status);
