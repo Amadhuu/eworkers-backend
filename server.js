@@ -526,11 +526,17 @@ app.get("/api/test/cron", async (req, res) => {
     for (const row of activeWorkers.rows) {
       console.log(`🧩 Worker: ${row.account_worker} (${row.group_name}) — OK`);
     }
-
+    
     // ✅ Step 2 — Simulate one safe ping to Floater
     const axios = require("axios");
+
     try {
-      const resp = await axios.post("http://127.0.0.1:3000/api/ping/archive", {
+      const floaterURL =
+        process.env.NODE_ENV === "production"
+          ? "https://floater.local.mock" // no real ping in production
+          : "http://127.0.0.1:3000";     // local-only ping
+
+      const resp = await axios.post(`${floaterURL}/api/ping/archive`, {
         status: "ARCHIVE_COMPLETE",
         date: today,
       });
@@ -540,10 +546,10 @@ app.get("/api/test/cron", async (req, res) => {
       } else {
         console.warn("⚠️ Ping-back returned non-200:", resp.status);
       }
+
     } catch (pingErr) {
       console.warn("⚠️ Ping-back failed during manual run:", pingErr.message);
     }
-
     console.log("✅ Manual SmartCron simulation (with ping) executed successfully once.");
     res.json({ ok: true, message: "Manual CRON + ping executed once successfully" });
 
