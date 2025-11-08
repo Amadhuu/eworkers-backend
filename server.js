@@ -482,81 +482,60 @@ app.get("/dashboard", (req, res) => {
 });
  
 // ================================================================
-// 🧪 MANUAL CRON TEST ENDPOINT — Simulate Archive Immediately
+// 🧪 MANUAL CRON TEST ENDPOINT — Protected (Prep Only)
 // ================================================================
-async function runSmartCronOnce() {
-  console.log("🧠 [Manual Run] SmartCron simulation starting...");
-  // 🪄 reuse same body as your actual CRON logic
-  const now = new Date();
-  now.setDate(now.getDate() - 1);
-  const today = now.toISOString().split("T")[0];
-  console.log("📅 Simulated workday:", today);
-
-  // fetch active workers
-  const activeWorkers = await pool.query(`
-    SELECT group_name, account_owner, account_worker
-    FROM active_registry
-    WHERE last_active >= NOW() - INTERVAL '7 days'
-  `);
-  console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
-
-  // do just a single dry-run summary, not full archive
-  console.log("✅ Manual SmartCron executed successfully once.");
-}
-
-app.get("/api/test/cron", async (req, res) => {
-  try {
-    console.log("🧠 [Manual Run] SmartCron simulation (with ping) starting...");
-
-    const now = new Date();
-    now.setDate(now.getDate() - 1);
-    const today = now.toISOString().split("T")[0];
-
-    // fetch active workers
-    const activeWorkers = await pool.query(`
-      SELECT group_name, account_owner, account_worker
-      FROM active_registry
-      WHERE last_active >= NOW() - INTERVAL '7 days'
-    `);
-
-    console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
-    console.log(`🧾 Simulated workday: ${today}`);
-
-    // ✅ Simulate archive summary only (no writes)
-    for (const row of activeWorkers.rows) {
-      console.log(`🧩 Worker: ${row.account_worker} (${row.group_name}) — OK`);
-    }
-    
-    // ✅ Step 2 — Simulate one safe ping to Floater
-    const axios = require("axios");
-
+if (process.env.ENABLE_MANUAL_CRON === "true") {
+  app.get("/api/test/cron", async (req, res) => {
     try {
-      const floaterURL =
-        process.env.NODE_ENV === "production"
-          ? "https://floater.local.mock" // no real ping in production
-          : "http://127.0.0.1:3000";     // local-only ping
+      console.log("🧠 [Manual Run] SmartCron simulation (with ping) starting...");
 
-      const resp = await axios.post(`${floaterURL}/api/ping/archive`, {
-        status: "ARCHIVE_COMPLETE",
-        date: today,
-      });
+      const now = new Date();
+      now.setDate(now.getDate() - 1);
+      const today = now.toISOString().split("T")[0];
 
-      if (resp.status >= 200 && resp.status < 300) {
-        console.log("📡 [Manual Run] Ping-back to Floater OK ✅");
-      } else {
-        console.warn("⚠️ Ping-back returned non-200:", resp.status);
+      // fetch active workers
+      const activeWorkers = await pool.query(`
+        SELECT group_name, account_owner, account_worker
+        FROM active_registry
+        WHERE last_active >= NOW() - INTERVAL '7 days'
+      `);
+
+      console.log(`🧮 Found ${activeWorkers.rowCount} active workers`);
+      console.log(`🧾 Simulated workday: ${today}`);
+
+      // ✅ Simulate archive summary only (no writes)
+      for (const row of activeWorkers.rows) {
+        console.log(`🧩 Worker: ${row.account_worker} (${row.group_name}) — OK`);
       }
 
-    } catch (pingErr) {
-      console.warn("⚠️ Ping-back failed during manual run:", pingErr.message);
-    }
-    console.log("✅ Manual SmartCron simulation (with ping) executed successfully once.");
-    res.json({ ok: true, message: "Manual CRON + ping executed once successfully" });
+      // ✅ Step 2 — Conditional ping to Floater (optional)
+      const floaterURL = process.env.FLOATER_PING_URL || "";
+      if (floaterURL) {
+        try {
+          const resp = await axios.post(`${floaterURL}/api/ping/archive`, {
+            status: "ARCHIVE_COMPLETE",
+            date: today,
+          });
 
-  } catch (err) {
-    console.error("❌ Manual CRON error:", err.message);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
+          if (resp.status >= 200 && resp.status < 300)
+            console.log("📡 [Manual Run] Ping-back to Floater OK ✅");
+          else console.warn("⚠️ Ping-back returned non-200:", resp.status);
+        } catch (pingErr) {
+          console.warn("⚠️ Ping-back failed during manual run:", pingErr.message);
+        }
+      } else {
+        console.log("📡 Floater ping skipped — no FLOATER_PING_URL set.");
+      }
+
+      console.log("✅ Manual SmartCron simulation (with ping) executed successfully once.");
+      res.json({ ok: true, message: "Manual CRON + ping executed once successfully" });
+    } catch (err) {
+      console.error("❌ Manual CRON error:", err.message);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+} else {
+  console.log("🔒 Manual /api/test/cron endpoint disabled (ENABLE_MANUAL_CRON != true)");
+}
 
 app.listen(PORT, () => console.log(`🚀 Backend live on port ${PORT}`));
