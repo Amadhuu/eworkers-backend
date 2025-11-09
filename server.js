@@ -62,10 +62,15 @@ app.get("/", (req, res) => res.send("E-Workers backend running 👍"));
 app.get("/api/logs", async (req, res) => {
   try {
     const q = `
-      SELECT id, group_name, account_owner, account_worker, account_type,
-             date_worked AS work_date, minutes_worked, earnings_naira
+      SELECT id, group_name, account_owner, account_worker,
+             CASE 
+               WHEN account_type = 'SAFE' THEN '' 
+               ELSE account_type 
+             END AS account_type,
+             date_worked AS work_date,
+             minutes_worked, earnings_naira
       FROM logs
-      ORDER BY date_worked DESC, id DESC
+      ORDER BY date_worked DESC, id DESC;
     `;
     const r = await pool.query(q);
     res.json(r.rows);
@@ -268,7 +273,19 @@ cron.schedule(
 
           // fetch last known account type and update
           const lastType = await getLastKnownAccountType(account_worker, account_owner, group_name);
-          const effectiveType = lastType || "ARCHIVE";
+          if (!lastType || lastType.trim() === "") {
+            console.log(`⚪ Skipped ${account_worker} (${group_name}) — no valid account_type found.`);
+            skipped++;
+            continue;
+          }
+
+          if (!minutes || minutes <= 0) {
+            console.log(`⏭️ Skipped ${account_worker} (${group_name}) — zero or invalid minutes.`);
+            skipped++;
+            continue;
+          }
+          
+          const effectiveType = lastType;
 
           await pool.query(
             `UPDATE logs
