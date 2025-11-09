@@ -6,7 +6,7 @@
   },
   "prep": {
     "version": "v1.1.0-pre",
-    "url": "https://github.com/Amadhuu/floater/releases/download/v1.1.0-pre/Floater-v1.1.0-pre.exe",
-    "notes": "Developer prep build – includes hybrid update & patch-note system"
+    "url": "https://pub-4a032a6c63984fb6a70183f7dd13e4db.r2.dev/E-Workers%20Floater%20Setup%201.0.0.exe",
+    "notes": "Developer prep build 🚀 identical to stable for rollout validation"
   }
 }
